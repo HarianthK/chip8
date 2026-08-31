@@ -1,0 +1,5 @@
+
+# python http.server writes nothing, but keep scratch out anyway
+__pycache__/
+.playwright-mcp/
+*.png
