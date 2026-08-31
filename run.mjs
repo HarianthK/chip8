@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { Chip8, WIDTH, HEIGHT } from "./chip8.js"
+import { Chip8, WIDTH } from "./chip8.js"
 
 const rom = process.argv[2]
 const cycles = Number(process.argv[3] ?? 400000)
@@ -12,9 +12,9 @@ for (let i = 0; i < cycles && !cpu.halted; i++) {
 }
 
 let out = ""
-for (let y = 0; y < HEIGHT; y++) {
+for (let y = 0; y < cpu.height; y++) {
   let line = ""
-  for (let x = 0; x < WIDTH; x++) line += cpu.display[y * WIDTH + x] ? "██" : "  "
+  for (let x = 0; x < cpu.width; x++) line += cpu.display[y * WIDTH + x] ? "██" : "  "
   if (line.trim()) out += line.replace(/\s+$/, "") + "\n"
 }
 console.log(out || "(nothing drawn)")

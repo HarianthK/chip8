@@ -1,8 +1,12 @@
 // The CHIP-8 machine: memory, registers, and the instruction loop.
 // Everything here is the 1977 spec; nothing about drawing or keyboards.
 
-export const WIDTH = 64
-export const HEIGHT = 32
+// SUPER-CHIP added a bigger screen. The buffer is always the larger one and
+// low resolution simply uses the top left corner of it.
+export const WIDTH = 128
+export const HEIGHT = 64
+export const LOW_WIDTH = 64
+export const LOW_HEIGHT = 32
 
 // Programs are loaded here because the interpreter itself used to live below.
 const PROGRAM_START = 0x200
@@ -18,6 +22,21 @@ const FONT = [
   0xf0, 0x80, 0x80, 0x80, 0xf0, 0xe0, 0x90, 0x90, 0x90, 0xe0,
   0xf0, 0x80, 0xf0, 0x80, 0xf0, 0xf0, 0x80, 0xf0, 0x80, 0x80,
 ]
+
+// SUPER-CHIP's double height font, 0 through 9, ten bytes per character.
+const BIG_FONT = [
+  0x3c, 0x7e, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0x7e, 0x3c,
+  0x18, 0x38, 0x58, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3c,
+  0x3e, 0x7f, 0xc3, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xff, 0xff,
+  0x3c, 0x7e, 0xc3, 0x03, 0x0e, 0x0e, 0x03, 0xc3, 0x7e, 0x3c,
+  0x06, 0x0e, 0x1e, 0x36, 0x66, 0xc6, 0xff, 0xff, 0x06, 0x06,
+  0xff, 0xff, 0xc0, 0xc0, 0xfc, 0xfe, 0x03, 0xc3, 0x7e, 0x3c,
+  0x3e, 0x7c, 0xc0, 0xc0, 0xfc, 0xfe, 0xc3, 0xc3, 0x7e, 0x3c,
+  0xff, 0xff, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0x60, 0x60,
+  0x3c, 0x7e, 0xc3, 0xc3, 0x7e, 0x7e, 0xc3, 0xc3, 0x7e, 0x3c,
+  0x3c, 0x7e, 0xc3, 0xc3, 0x7f, 0x3f, 0x03, 0x03, 0x7e, 0x7c,
+]
+const BIG_FONT_AT = 0x50
 
 export class Chip8 {
   constructor() {
@@ -40,7 +59,22 @@ export class Chip8 {
     this.drawn = false
     // FX0A waits for a key; this holds the register it will land in.
     this.waitingFor = -1
+    // The opcode that stopped the machine, if it met one it does not have.
+    this.unsupported = 0
+    // Low resolution until a program asks for the bigger screen.
+    this.hires = false
+    // FX75/FX85 save and restore these across a program, but not a reset.
+    this.flags = this.flags ?? new Uint8Array(8)
     this.memory.set(FONT, 0)
+    this.memory.set(BIG_FONT, BIG_FONT_AT)
+  }
+
+  get width() {
+    return this.hires ? WIDTH : LOW_WIDTH
+  }
+
+  get height() {
+    return this.hires ? HEIGHT : LOW_HEIGHT
   }
 
   load(bytes) {
@@ -86,6 +120,18 @@ export class Chip8 {
           this.drawn = true
         } else if (opcode === 0x00ee) {
           this.pc = this.stack[--this.sp & 0xf]
+        } else if (opcode === 0x00fd) {
+          this.halted = true
+        } else if (opcode === 0x00ff || opcode === 0x00fe) {
+          this.hires = opcode === 0x00ff
+          this.display.fill(0)
+          this.drawn = true
+        } else if ((opcode & 0xfff0) === 0x00c0) {
+          this.scrollDown(n)
+        } else if (opcode === 0x00fb) {
+          this.scrollSide(4)
+        } else if (opcode === 0x00fc) {
+          this.scrollSide(-4)
         }
         // Anything else here is a call into 1977 machine code. Ignored.
         break
@@ -160,22 +206,73 @@ export class Chip8 {
       case 0x65:
         for (let r = 0; r <= x; r++) this.v[r] = this.memory[(this.i + r) & 0xfff]
         break
+      case 0x30: this.i = BIG_FONT_AT + (this.v[x] % 10) * 10; break
+      case 0x75:
+        for (let r = 0; r <= (x & 7); r++) this.flags[r] = this.v[r]
+        break
+      case 0x85:
+        for (let r = 0; r <= (x & 7); r++) this.v[r] = this.flags[r]
+        break
+      default: this.stop(0xf000 | nn)
     }
   }
 
-  // Sprites are drawn by flipping pixels. VF reports whether anything was
-  // switched off, which is the only collision detection the machine has.
+  stop(opcode) {
+    this.unsupported = opcode
+    this.halted = true
+  }
+
+  // Sprites are drawn by flipping pixels; VF reports whether anything was
+  // switched off. A row count of zero is SUPER-CHIP's sixteen by sixteen.
   draw(vx, vy, rows) {
+    const w = this.width
+    const h = this.height
+    const wide = rows === 0
+    const tall = wide ? 16 : rows
     this.v[0xf] = 0
-    for (let row = 0; row < rows; row++) {
-      const sprite = this.memory[(this.i + row) & 0xfff]
-      const py = (vy + row) % HEIGHT
-      for (let bit = 0; bit < 8; bit++) {
-        if (!(sprite & (0x80 >> bit))) continue
-        const px = (vx + bit) % WIDTH
-        const at = py * WIDTH + px
-        if (this.display[at]) this.v[0xf] = 1
-        this.display[at] ^= 1
+    for (let row = 0; row < tall; row++) {
+      const at = this.i + row * (wide ? 2 : 1)
+      const bits = wide
+        ? (this.memory[at & 0xfff] << 8) | this.memory[(at + 1) & 0xfff]
+        : this.memory[at & 0xfff]
+      const span = wide ? 16 : 8
+      const py = (vy + row) % h
+      for (let bit = 0; bit < span; bit++) {
+        if (!(bits & (1 << (span - 1 - bit)))) continue
+        const px = (vx + bit) % w
+        const cell = py * WIDTH + px
+        if (this.display[cell]) this.v[0xf] = 1
+        this.display[cell] ^= 1
+      }
+    }
+    this.drawn = true
+  }
+
+  // Scrolling moves the visible area only, so the rows and columns beyond the
+  // low resolution corner are left alone.
+  scrollDown(rows) {
+    const w = this.width
+    for (let y = this.height - 1; y >= 0; y--) {
+      const from = y - rows
+      for (let x = 0; x < w; x++) {
+        this.display[y * WIDTH + x] = from >= 0 ? this.display[from * WIDTH + x] : 0
+      }
+    }
+    this.drawn = true
+  }
+
+  scrollSide(by) {
+    const w = this.width
+    for (let y = 0; y < this.height; y++) {
+      const row = y * WIDTH
+      if (by > 0) {
+        for (let x = w - 1; x >= 0; x--) {
+          this.display[row + x] = x - by >= 0 ? this.display[row + x - by] : 0
+        }
+      } else {
+        for (let x = 0; x < w; x++) {
+          this.display[row + x] = x - by < w ? this.display[row + x - by] : 0
+        }
       }
     }
     this.drawn = true

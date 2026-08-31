@@ -9,7 +9,8 @@ still run, because the specification is small enough to implement exactly:
 4 KB of memory, sixteen registers, a 64 by 32 screen, and thirty-five
 instructions.
 
-This is that machine, in about two hundred lines.
+This is that machine, plus SUPER-CHIP, the extension that doubled the screen to
+128 by 64 and added scrolling.
 
 ## Running it
 
@@ -20,9 +21,11 @@ python -m http.server 3100
 ```
 
 Then open <http://localhost:3100>. Pick a program from the dropdown and it
-plays. Eighty five of them, fetched from [John Earnest's CHIP-8
+plays. Seventy one of them, fetched from [John Earnest's CHIP-8
 archive](https://github.com/JohnEarnest/chip8Archive) when you choose one. You
 can also load your own `.ch8` file.
+
+On a phone, tap the keypad at the bottom of the page instead of typing.
 
 The original keypad was sixteen hex keys, mapped here as most emulators do:
 
@@ -48,9 +51,22 @@ symbols and see what you hoped for, so an instruction was deliberately broken to
 confirm the display actually changed. It did, visibly, and restoring the
 instruction brought the clean grid back. A test that cannot fail proves nothing.
 
-`run.mjs` runs a program headlessly and prints the screen as text, which is how
-the tests above were read without a browser. It takes a path, so point it at a
-file you have downloaded.
+SUPER-CHIP is checked by the same suite's scrolling test, in both resolutions.
+Its pass condition is that every arrow lands inside its box pointing the way it
+came, which it does.
+
+The screen and drawing code had to be rewritten for the bigger display, and
+that is the easiest place in the project to break something quietly. So the
+five instruction tests were run against the version before the rewrite and the
+version after, and compared pixel by pixel. All five came out identical.
+
+Every program in the archive is also run headlessly for three seconds and its
+lit pixels counted, which is how the two silent failures below were found. It
+reports sixty eight of seventy one drawing, and names the other three.
+
+`run.mjs` runs a single program headlessly and prints the screen as text, which
+is how the tests above were read without a browser. It takes a path, so point it
+at a file you have downloaded.
 
 ## Decisions worth knowing
 
@@ -58,6 +74,11 @@ file you have downloaded.
 the result, not before. Several programs read `VF` as an operand and then expect
 it to be overwritten, and getting this backwards passes casual testing and fails
 the flags suite.
+
+**A program can be too big without saying so.** The archive marks XO-CHIP
+programs with a flag, but fourteen more ask for sixty four kilobytes of memory
+while leaving that flag unset. They loaded, ran, and drew nothing. The size a
+program asks for turns out to be the more reliable signal than the flag.
 
 **Speed is a matter of taste.** The original had no fixed clock, so games ran at
 whatever speed the host managed. Seven hundred instructions a second suits most
@@ -93,5 +114,8 @@ attach those terms to this repository. Fetching what somebody else publishes,
 rather than copying it, keeps the question from arising. It does mean the test
 buttons need a connection; your own files do not.
 
-Also no SUPER-CHIP or XO-CHIP extensions, which add a larger screen and more
-instructions. The original set is the interesting part.
+XO-CHIP is not here. It adds a second colour plane, its own sound, and sixty
+four kilobytes of memory, and thirty two of the archive's programs need it.
+Those are left out of the list. Three more ask for an XO-CHIP instruction
+partway through without declaring it, and the machine stops and names the
+instruction rather than leaving a black screen.
