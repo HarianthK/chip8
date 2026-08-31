@@ -19,8 +19,10 @@ No build step and no dependencies. Serve the folder:
 python -m http.server 3100
 ```
 
-Then open <http://localhost:3100>. Load one of the test programs, or your own
-`.ch8` file.
+Then open <http://localhost:3100>. Pick a program from the dropdown and it
+plays. Eighty five of them, fetched from [John Earnest's CHIP-8
+archive](https://github.com/JohnEarnest/chip8Archive) when you choose one. You
+can also load your own `.ch8` file.
 
 The original keypad was sixteen hex keys, mapped here as most emulators do:
 
@@ -66,6 +68,21 @@ speed setting means the same thing on a 60Hz screen and a 120Hz one.
 
 **Sound is one square wave**, gated by the sound timer, and built only when the
 reader first loads a program, because browsers refuse to make noise before then.
+
+## Speed
+
+Every program in the archive carries the speed its author intended, and the
+emulator applies it on selection. This matters more than it sounds: those
+figures run from 7 to 1000, so a single fixed speed suits almost nothing.
+Breakout wants 420 instructions a second and is unplayable at 60,000, which is
+what a bullet-hell shooter in the same archive asks for.
+
+The published figure is per frame rather than per second, which is worth knowing
+because reading it as per second runs a game sixty times too slowly and shows an
+apparently blank screen.
+
+The slider overrides it. Winding a slow game up to the maximum is worth doing
+once.
 
 ## What is not here
 

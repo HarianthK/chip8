@@ -138,3 +138,52 @@ addEventListener("keyup", (e) => {
 })
 
 paint()
+
+// The archive publishes a manifest alongside the programs: author, description,
+// and the tick rate each was written for. That rate is instructions per frame
+// rather than per second, so it is multiplied by sixty to match this clock.
+const ARCHIVE = "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/master"
+const games = document.getElementById("games")
+const about = document.getElementById("about")
+let manifest = {}
+
+fetch(`${ARCHIVE}/programs.json`)
+  .then((r) => (r.ok ? r.json() : {}))
+  .then((data) => {
+    manifest = data
+    // XO-CHIP programs use instructions this machine does not implement, so
+    // offering them would only produce a frozen screen and a puzzled reader.
+    const playable = Object.entries(data)
+      .filter(([, meta]) => !meta.options?.enableXO)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+
+    games.innerHTML = `<option value="">Pick a program (${playable.length})</option>`
+    for (const [id, meta] of playable) {
+      const option = document.createElement("option")
+      option.value = id
+      option.textContent = `${id}${meta.authors?.length ? ` by ${meta.authors[0]}` : ""}`
+      games.append(option)
+    }
+  })
+  .catch(() => {
+    games.innerHTML = '<option value="">Could not reach the archive</option>'
+  })
+
+games.addEventListener("change", async () => {
+  const id = games.value
+  if (!id) return
+  const meta = manifest[id] ?? {}
+
+  const perFrame = Number(meta.options?.tickrate)
+  if (Number.isFinite(perFrame) && perFrame > 0) {
+    speed = perFrame * 60
+    // The slider only spans what is comfortable to drag. A few programs ask for
+    // far more than that, so the label shows the real figure and the handle
+    // simply parks at the end.
+    speedEl.value = String(Math.min(Math.max(speed, 100), Number(speedEl.max)))
+    document.getElementById("speedLabel").textContent = `${speed.toLocaleString()}/sec`
+  }
+
+  about.textContent = meta.desc ?? ""
+  await loadUrl(`${ARCHIVE}/roms/${id}.ch8`, id)
+})
