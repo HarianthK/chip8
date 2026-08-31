@@ -46,8 +46,8 @@
   <canvas id="screen" width="640" height="320"></canvas>
 
   <div class="row">
-    <button data-rom="roms/3-corax+.ch8">Opcode test</button>
-    <button data-rom="roms/4-flags.ch8">Flags test</button>
+    <button data-rom="https://raw.githubusercontent.com/Timendus/chip8-test-suite/main/bin/3-corax%2B.ch8">Opcode test</button>
+    <button data-rom="https://raw.githubusercontent.com/Timendus/chip8-test-suite/main/bin/4-flags.ch8">Flags test</button>
     <label class="file">Load a program<input id="file" type="file" accept=".ch8,.c8,.rom,application/octet-stream" /></label>
     <button id="reset">Reset</button>
   </div>
@@ -70,9 +70,10 @@
   </table>
 
   <footer>
-    The two test programs are from
-    <a href="https://github.com/Timendus/chip8-test-suite">Timendus' CHIP-8 test suite</a>
-    and check every instruction against the spec. Games are not included; load your own file.
+    The two test programs are fetched from
+    <a href="https://github.com/Timendus/chip8-test-suite">Timendus' CHIP-8 test suite</a>,
+    which is GPL-3.0 and not redistributed here. They check every instruction
+    against the spec. Games are not included; load your own file.
   </footer>
 
   <script type="module" src="app.js"></script>

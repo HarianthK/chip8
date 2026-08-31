@@ -47,7 +47,8 @@ confirm the display actually changed. It did, visibly, and restoring the
 instruction brought the clean grid back. A test that cannot fail proves nothing.
 
 `run.mjs` runs a program headlessly and prints the screen as text, which is how
-the tests above were read without a browser.
+the tests above were read without a browser. It takes a path, so point it at a
+file you have downloaded.
 
 ## Decisions worth knowing
 
@@ -68,8 +69,12 @@ reader first loads a program, because browsers refuse to make noise before then.
 
 ## What is not here
 
-Games. The two bundled programs are tests, under the MIT licence from the suite
-above. CHIP-8 games are widely available; load one with the file picker.
+Games, and no test programs either. The two test buttons fetch from
+[Timendus' suite](https://github.com/Timendus/chip8-test-suite) at the moment
+you press them, because that suite is GPL-3.0 and bundling its files would
+attach those terms to this repository. Fetching what somebody else publishes,
+rather than copying it, keeps the question from arising. It does mean the test
+buttons need a connection; your own files do not.
 
 Also no SUPER-CHIP or XO-CHIP extensions, which add a larger screen and more
 instructions. The original set is the interesting part.
