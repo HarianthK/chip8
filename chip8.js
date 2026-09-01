@@ -44,7 +44,8 @@ export class Chip8 {
   }
 
   reset() {
-    this.memory = new Uint8Array(4096)
+    // XO-CHIP widened the address space from four kilobytes to sixty four.
+    this.memory = new Uint8Array(65536)
     this.v = new Uint8Array(16)
     this.i = 0
     this.pc = PROGRAM_START
@@ -65,6 +66,11 @@ export class Chip8 {
     this.hires = false
     // FX75/FX85 save and restore these across a program, but not a reset.
     this.flags = this.flags ?? new Uint8Array(8)
+    // XO-CHIP draws into two overlaid bitplanes, so a pixel holds 0 to 3.
+    this.plane = 1
+    // Sixteen bytes of waveform and the rate to play them at.
+    this.pattern = new Uint8Array(16)
+    this.pitch = 64
     this.memory.set(FONT, 0)
     this.memory.set(BIG_FONT, BIG_FONT_AT)
   }
@@ -79,7 +85,7 @@ export class Chip8 {
 
   load(bytes) {
     this.reset()
-    this.memory.set(bytes.subarray(0, 4096 - PROGRAM_START), PROGRAM_START)
+    this.memory.set(bytes.subarray(0, 65536 - PROGRAM_START), PROGRAM_START)
   }
 
   // The timers tick at 60Hz regardless of how fast instructions run.
@@ -105,7 +111,7 @@ export class Chip8 {
     if (this.halted || this.waitingFor >= 0) return
 
     const opcode = (this.memory[this.pc] << 8) | this.memory[this.pc + 1]
-    this.pc = (this.pc + 2) & 0xfff
+    this.pc = (this.pc + 2) & 0xffff
 
     const nnn = opcode & 0x0fff
     const nn = opcode & 0x00ff
@@ -116,8 +122,7 @@ export class Chip8 {
     switch (opcode & 0xf000) {
       case 0x0000:
         if (opcode === 0x00e0) {
-          this.display.fill(0)
-          this.drawn = true
+          this.clear()
         } else if (opcode === 0x00ee) {
           this.pc = this.stack[--this.sp & 0xf]
         } else if (opcode === 0x00fd) {
@@ -128,6 +133,8 @@ export class Chip8 {
           this.drawn = true
         } else if ((opcode & 0xfff0) === 0x00c0) {
           this.scrollDown(n)
+        } else if ((opcode & 0xfff0) === 0x00d0) {
+          this.scrollDown(-n)
         } else if (opcode === 0x00fb) {
           this.scrollSide(4)
         } else if (opcode === 0x00fc) {
@@ -148,7 +155,16 @@ export class Chip8 {
 
       case 0x3000: if (this.v[x] === nn) this.pc += 2; break
       case 0x4000: if (this.v[x] !== nn) this.pc += 2; break
-      case 0x5000: if (this.v[x] === this.v[y]) this.pc += 2; break
+      case 0x5000:
+        if (n === 2 || n === 3) {
+          const step = x <= y ? 1 : -1
+          for (let r = x, o = 0; ; r += step, o++) {
+            if (n === 2) this.memory[(this.i + o) & 0xffff] = this.v[r]
+            else this.v[r] = this.memory[(this.i + o) & 0xffff]
+            if (r === y) break
+          }
+        } else if (this.v[x] === this.v[y]) this.pc += 2
+        break
       case 0x6000: this.v[x] = nn; break
       case 0x7000: this.v[x] = (this.v[x] + nn) & 0xff; break
 
@@ -189,22 +205,31 @@ export class Chip8 {
 
   misc(x, nn) {
     switch (nn) {
+      case 0x00: // F000 is two words: the second is a full 16 bit address.
+        this.i = (this.memory[this.pc] << 8) | this.memory[this.pc + 1]
+        this.pc = (this.pc + 2) & 0xffff
+        break
+      case 0x01: this.plane = x & 3; break
+      case 0x02:
+        for (let b = 0; b < 16; b++) this.pattern[b] = this.memory[(this.i + b) & 0xffff]
+        break
+      case 0x3a: this.pitch = this.v[x]; break
       case 0x07: this.v[x] = this.delay; break
       case 0x0a: this.waitingFor = x; break
       case 0x15: this.delay = this.v[x]; break
       case 0x18: this.sound = this.v[x]; break
-      case 0x1e: this.i = (this.i + this.v[x]) & 0xfff; break
+      case 0x1e: this.i = (this.i + this.v[x]) & 0xffff; break
       case 0x29: this.i = (this.v[x] & 0xf) * 5; break
       case 0x33: // Binary-coded decimal: hundreds, tens, units.
-        this.memory[this.i] = Math.floor(this.v[x] / 100)
-        this.memory[this.i + 1] = Math.floor(this.v[x] / 10) % 10
-        this.memory[this.i + 2] = this.v[x] % 10
+        this.memory[this.i & 0xffff] = Math.floor(this.v[x] / 100)
+        this.memory[(this.i + 1) & 0xffff] = Math.floor(this.v[x] / 10) % 10
+        this.memory[(this.i + 2) & 0xffff] = this.v[x] % 10
         break
       case 0x55:
-        for (let r = 0; r <= x; r++) this.memory[(this.i + r) & 0xfff] = this.v[r]
+        for (let r = 0; r <= x; r++) this.memory[(this.i + r) & 0xffff] = this.v[r]
         break
       case 0x65:
-        for (let r = 0; r <= x; r++) this.v[r] = this.memory[(this.i + r) & 0xfff]
+        for (let r = 0; r <= x; r++) this.v[r] = this.memory[(this.i + r) & 0xffff]
         break
       case 0x30: this.i = BIG_FONT_AT + (this.v[x] % 10) * 10; break
       case 0x75:
@@ -222,40 +247,63 @@ export class Chip8 {
     this.halted = true
   }
 
+  // Only the selected planes are cleared, which is how XO-CHIP wipes one
+  // layer and leaves the other standing.
+  clear() {
+    for (let i = 0; i < this.display.length; i++) this.display[i] &= ~this.plane
+    this.drawn = true
+  }
+
   // Sprites are drawn by flipping pixels; VF reports whether anything was
   // switched off. A row count of zero is SUPER-CHIP's sixteen by sixteen.
   draw(vx, vy, rows) {
+    this.v[0xf] = 0
+    if (this.plane === 0) return
+    let at = this.i
+    // With both planes selected the sprite is stored twice over, one whole
+    // sprite for the first plane and then another for the second.
+    for (const layer of [1, 2]) {
+      if (!(this.plane & layer)) continue
+      at = this.blit(vx, vy, rows, layer, at)
+    }
+    this.drawn = true
+  }
+
+  blit(vx, vy, rows, layer, from) {
     const w = this.width
     const h = this.height
     const wide = rows === 0
     const tall = wide ? 16 : rows
-    this.v[0xf] = 0
+    const span = wide ? 16 : 8
+    let at = from
     for (let row = 0; row < tall; row++) {
-      const at = this.i + row * (wide ? 2 : 1)
       const bits = wide
-        ? (this.memory[at & 0xfff] << 8) | this.memory[(at + 1) & 0xfff]
-        : this.memory[at & 0xfff]
-      const span = wide ? 16 : 8
+        ? (this.memory[at & 0xffff] << 8) | this.memory[(at + 1) & 0xffff]
+        : this.memory[at & 0xffff]
+      at += wide ? 2 : 1
       const py = (vy + row) % h
       for (let bit = 0; bit < span; bit++) {
         if (!(bits & (1 << (span - 1 - bit)))) continue
         const px = (vx + bit) % w
         const cell = py * WIDTH + px
-        if (this.display[cell]) this.v[0xf] = 1
-        this.display[cell] ^= 1
+        if (this.display[cell] & layer) this.v[0xf] = 1
+        this.display[cell] ^= layer
       }
     }
-    this.drawn = true
+    return at
   }
 
   // Scrolling moves the visible area only, so the rows and columns beyond the
   // low resolution corner are left alone.
   scrollDown(rows) {
     const w = this.width
-    for (let y = this.height - 1; y >= 0; y--) {
+    const h = this.height
+    const ys = rows >= 0 ? [...Array(h).keys()].reverse() : [...Array(h).keys()]
+    for (const y of ys) {
       const from = y - rows
+      const inside = from >= 0 && from < h
       for (let x = 0; x < w; x++) {
-        this.display[y * WIDTH + x] = from >= 0 ? this.display[from * WIDTH + x] : 0
+        this.display[y * WIDTH + x] = inside ? this.display[from * WIDTH + x] : 0
       }
     }
     this.drawn = true

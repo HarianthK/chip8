@@ -9,8 +9,11 @@ still run, because the specification is small enough to implement exactly:
 4 KB of memory, sixteen registers, a 64 by 32 screen, and thirty-five
 instructions.
 
-This is that machine, plus SUPER-CHIP, the extension that doubled the screen to
-128 by 64 and added scrolling.
+This is that machine, plus both extensions people built on top of it:
+SUPER-CHIP, which doubled the screen to 128 by 64 and added scrolling, and
+XO-CHIP, which added a second colour plane, sixty four kilobytes of memory and a
+sound chip you load a waveform into. Every one of the 103 programs in the
+archive runs.
 
 ## Running it
 
@@ -21,7 +24,7 @@ python -m http.server 3100
 ```
 
 Then open <http://localhost:3100>. Pick a program from the dropdown and it
-plays. Seventy one of them, fetched from [John Earnest's CHIP-8
+plays. All 103 of them, fetched from [John Earnest's CHIP-8
 archive](https://github.com/JohnEarnest/chip8Archive) when you choose one. You
 can also load your own `.ch8` file.
 
@@ -51,18 +54,21 @@ symbols and see what you hoped for, so an instruction was deliberately broken to
 confirm the display actually changed. It did, visibly, and restoring the
 instruction brought the clean grid back. A test that cannot fail proves nothing.
 
-SUPER-CHIP is checked by the same suite's scrolling test, in both resolutions.
-Its pass condition is that every arrow lands inside its box pointing the way it
-came, which it does.
+SUPER-CHIP and XO-CHIP are checked by the same suite's scrolling test, in both
+resolutions and on both platforms. Its pass condition is that every arrow lands
+inside its box pointing the way it came, which it does.
 
 The screen and drawing code had to be rewritten for the bigger display, and
 that is the easiest place in the project to break something quietly. So the
 five instruction tests were run against the version before the rewrite and the
 version after, and compared pixel by pixel. All five came out identical.
 
-Every program in the archive is also run headlessly for three seconds and its
-lit pixels counted, which is how the two silent failures below were found. It
-reports sixty eight of seventy one drawing, and names the other three.
+Every program in the archive is also run headlessly and its lit pixels counted,
+which is how the silent failures below were found. Counting pixels only proves a
+program is not a black screen, so a second pass checks that the picture actually
+changes: either on its own, or in response to a key, trying all sixteen on a
+fresh machine each time. All 103 pass. The one that never moves is a template
+for drawing a Nokia 3310 screen, which is meant to sit still.
 
 `run.mjs` runs a single program headlessly and prints the screen as text, which
 is how the tests above were read without a browser. It takes a path, so point it
@@ -77,8 +83,19 @@ the flags suite.
 
 **A program can be too big without saying so.** The archive marks XO-CHIP
 programs with a flag, but fourteen more ask for sixty four kilobytes of memory
-while leaving that flag unset. They loaded, ran, and drew nothing. The size a
-program asks for turns out to be the more reliable signal than the flag.
+while leaving that flag unset. Before XO-CHIP was implemented they loaded, ran,
+and drew nothing, and the size a program asked for turned out to be a more
+reliable signal than the flag.
+
+**The two bitplanes are one screen, not two.** A pixel holds a number from zero
+to three rather than a flag, so drawing, clearing and scrolling all work on the
+selected planes and leave the rest standing. Sprites drawn with both planes
+selected are stored twice over, one whole sprite after the other.
+
+**A tap can be too quick to see.** A key that goes down and comes back up
+between two frames never reaches the machine, because nothing runs in between.
+Releases are held back until the machine has run a frame with the key down,
+which is what makes the on-screen pad usable at all.
 
 **Speed is a matter of taste.** The original had no fixed clock, so games ran at
 whatever speed the host managed. Seven hundred instructions a second suits most
@@ -114,8 +131,6 @@ attach those terms to this repository. Fetching what somebody else publishes,
 rather than copying it, keeps the question from arising. It does mean the test
 buttons need a connection; your own files do not.
 
-XO-CHIP is not here. It adds a second colour plane, its own sound, and sixty
-four kilobytes of memory, and thirty two of the archive's programs need it.
-Those are left out of the list. Three more ask for an XO-CHIP instruction
-partway through without declaring it, and the machine stops and names the
-instruction rather than leaving a black screen.
+Nothing from the archive is left out any more. If a program does reach for an
+instruction this machine does not have, it stops and names it rather than
+leaving a black screen.

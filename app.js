@@ -21,6 +21,10 @@ let audio = null
 // too slow and games crawl, too fast and they become unplayable.
 let speed = 700
 
+// One colour per bitplane and a third where they overlap. Programs carry their
+// own palettes, but keeping the page's own reads better than honouring them.
+const INK = [null, "#e08a3c", "#5aa9c4", "#f4f1ec"]
+
 function paint() {
   // A program can switch to the bigger screen at any moment, so the pixel
   // size is read from the machine each frame rather than fixed once.
@@ -30,37 +34,102 @@ function paint() {
   const h = canvas.height / down
   ctx.fillStyle = "#0b0f14"
   ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.fillStyle = "#e08a3c"
   for (let y = 0; y < down; y++) {
     for (let x = 0; x < across; x++) {
-      if (cpu.display[y * WIDTH + x]) ctx.fillRect(x * w, y * h, w, h)
+      const ink = INK[cpu.display[y * WIDTH + x]]
+      if (!ink) continue
+      ctx.fillStyle = ink
+      ctx.fillRect(x * w, y * h, w, h)
     }
   }
 }
 
-// One square wave, gated by the sound timer. Built lazily because a browser
-// will not let a page make noise before the reader has touched it.
+// Built lazily because a browser will not let a page make noise before the
+// reader has touched it.
+function voice() {
+  if (audio) return audio
+  const ctxA = new (window.AudioContext || window.webkitAudioContext)()
+  const gain = ctxA.createGain()
+  gain.gain.value = 0
+  gain.connect(ctxA.destination)
+
+  // The beep keeps its own tap so a waveform can silence it without stopping
+  // an oscillator that cannot be restarted.
+  const beep = ctxA.createGain()
+  beep.gain.value = 1
+  beep.connect(gain)
+  const osc = ctxA.createOscillator()
+  osc.type = "square"
+  osc.frequency.value = 440
+  osc.connect(beep)
+  osc.start()
+
+  audio = { ctxA, gain, beep, source: null, playing: "" }
+  return audio
+}
+
+// The bits are samples: rate is 4000Hz at the default pitch, doubling every
+// four octaves, and the buffer loops for as long as the sound timer runs.
+function pattern(a) {
+  const key = cpu.pattern.join(",") + "@" + cpu.pitch
+  if (a.playing === key) return
+  a.playing = key
+
+  const buffer = a.ctxA.createBuffer(1, 128, a.ctxA.sampleRate)
+  const data = buffer.getChannelData(0)
+  for (let bit = 0; bit < 128; bit++) {
+    data[bit] = (cpu.pattern[bit >> 3] >> (7 - (bit & 7))) & 1 ? 1 : -1
+  }
+  a.source?.stop()
+  const source = a.ctxA.createBufferSource()
+  source.buffer = buffer
+  source.loop = true
+  source.playbackRate.value = (4000 * 2 ** ((cpu.pitch - 64) / 48)) / a.ctxA.sampleRate
+  source.connect(a.gain)
+  source.start()
+  a.source = source
+}
+
 function tone(on) {
   if (!on) {
     if (audio?.gain) audio.gain.gain.value = 0
     return
   }
-  if (!audio) {
-    const ctxA = new (window.AudioContext || window.webkitAudioContext)()
-    const osc = ctxA.createOscillator()
-    const gain = ctxA.createGain()
-    osc.type = "square"
-    osc.frequency.value = 440
-    gain.gain.value = 0
-    osc.connect(gain).connect(ctxA.destination)
-    osc.start()
-    audio = { ctxA, gain }
-  }
-  audio.gain.gain.value = 0.04
+  const a = voice()
+  const custom = cpu.pattern.some((b) => b !== 0)
+  if (custom) pattern(a)
+  a.beep.gain.value = custom ? 0 : 1
+  a.gain.gain.value = 0.04
 }
 
 let last = performance.now()
 let owed = 0
+
+// A tap can go down and up in the gap between two frames, and the machine would
+// never see it. Releases wait until it has run a frame with the key held.
+let frames = 0
+const pressedOn = new Map()
+const releasing = new Set()
+
+function press(key) {
+  releasing.delete(key)
+  pressedOn.set(key, frames)
+  cpu.keyDown(key)
+}
+
+function release(key) {
+  releasing.add(key)
+}
+
+function settleKeys() {
+  for (const key of [...releasing]) {
+    if (frames > (pressedOn.get(key) ?? 0)) {
+      cpu.keyUp(key)
+      releasing.delete(key)
+    }
+  }
+  frames++
+}
 
 function frame(now) {
   if (!running) return
@@ -70,9 +139,21 @@ function frame(now) {
   // Instructions are paced by real time rather than per frame, so the speed
   // control means the same thing on any display.
   owed += (elapsed / 1000) * speed
-  const budget = Math.floor(owed)
-  owed -= budget
-  for (let i = 0; i < budget; i++) cpu.step()
+
+  // Time boxed, so a program asking for ten thousand instructions a frame
+  // cannot block the page while it runs them.
+  const started = performance.now()
+  let ran = 0
+  while (owed >= 1 && !cpu.halted) {
+    cpu.step()
+    owed--
+    if ((++ran & 0x3ff) === 0 && performance.now() - started > 8) {
+      owed = 0
+      break
+    }
+  }
+
+  settleKeys()
 
   // Timers run at 60Hz whatever the processor is doing.
   cpu.tickTimers()
@@ -82,11 +163,11 @@ function frame(now) {
     paint()
     cpu.drawn = false
   }
-  // A few programs in the archive quietly use XO-CHIP instructions without
-  // saying so. Naming the missing one beats leaving the reader a black screen.
+  // Nothing in the archive needs an instruction this machine lacks, but a file
+  // of your own might, and a named opcode beats a black screen.
   if (cpu.unsupported) {
     const op = cpu.unsupported.toString(16).toUpperCase().padStart(4, "0")
-    statusEl.textContent = `stopped, needs XO-CHIP (${op})`
+    statusEl.textContent = `stopped, needs ${op}`
   } else {
     statusEl.textContent = cpu.halted ? "halted" : "running"
   }
@@ -161,11 +242,11 @@ addEventListener("keydown", (e) => {
   const key = KEYMAP[e.code]
   if (key === undefined) return
   e.preventDefault()
-  cpu.keyDown(key)
+  press(key)
 })
 addEventListener("keyup", (e) => {
   const key = KEYMAP[e.code]
-  if (key !== undefined) cpu.keyUp(key)
+  if (key !== undefined) release(key)
 })
 
 // The same sixteen keys by touch. Pointer events cover mouse and finger alike,
@@ -173,15 +254,15 @@ addEventListener("keyup", (e) => {
 const pad = document.getElementById("pad")
 for (const cell of pad.querySelectorAll("td[data-code]")) {
   const key = KEYMAP[cell.dataset.code]
-  const press = (on) => (e) => {
+  const onPointer = (on) => (e) => {
     e.preventDefault()
     if (on) cell.setPointerCapture?.(e.pointerId)
     cell.classList.toggle("down", on)
-    on ? cpu.keyDown(key) : cpu.keyUp(key)
+    on ? press(key) : release(key)
   }
-  cell.addEventListener("pointerdown", press(true))
-  cell.addEventListener("pointerup", press(false))
-  cell.addEventListener("pointercancel", press(false))
+  cell.addEventListener("pointerdown", onPointer(true))
+  cell.addEventListener("pointerup", onPointer(false))
+  cell.addEventListener("pointercancel", onPointer(false))
 }
 
 paint()
@@ -197,16 +278,7 @@ fetch(`${ARCHIVE}/programs.json`)
   .then((r) => (r.ok ? r.json() : {}))
   .then((data) => {
     manifest = data
-    // Skip what this machine cannot run: XO-CHIP instructions, and the
-    // sixty four kilobytes some programs want without setting the XO flag.
-    const MEMORY = 4096 - 512
-    const playable = Object.entries(data)
-      .filter(([, meta]) => {
-        const options = meta.options ?? {}
-        if (options.enableXO) return false
-        return (Number(options.maxSize) || 0) <= MEMORY
-      })
-      .sort((a, b) => a[0].localeCompare(b[0]))
+    const playable = Object.entries(data).sort((a, b) => a[0].localeCompare(b[0]))
 
     games.innerHTML = `<option value="">Pick a program (${playable.length})</option>`
     for (const [id, meta] of playable) {
