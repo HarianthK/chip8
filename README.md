@@ -126,6 +126,13 @@ between two frames never reaches the machine, because nothing runs in between.
 Releases are held back until the machine has run a frame with the key down,
 which is what makes the on-screen pad usable at all.
 
+**Timers are counted against the clock, not against frames.** The machine's
+timers run sixty times a second, and it is tempting to tick them once per
+animation frame. That is right only on a sixty hertz screen. On a 120Hz monitor
+every program pacing itself with the delay timer, which is most of them, would
+run at double speed. The elapsed milliseconds are accumulated instead, so a
+second of real time is sixty ticks whatever the screen is doing.
+
 **Speed is a matter of taste.** The original had no fixed clock, so games ran at
 whatever speed the host managed. Seven hundred instructions a second suits most
 of them; the control adjusts it.

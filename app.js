@@ -105,6 +105,9 @@ function tone(on) {
 
 let last = performance.now()
 let owed = 0
+// Timer ticks are counted against the clock, not against animation frames. A
+// 120Hz screen would otherwise run every timer in every program at double speed.
+let ticksOwed = 0
 
 // A tap can go down and up in the gap between two frames, and the machine would
 // never see it. Releases wait until it has run a frame with the key held.
@@ -219,8 +222,10 @@ function frame(now) {
   stepScan(3)
   showUsedKeys()
 
-  // Timers run at 60Hz whatever the processor is doing.
-  cpu.tickTimers()
+  // Timers run at 60Hz whatever the screen or the processor is doing.
+  ticksOwed += elapsed / (1000 / 60)
+  for (let t = 0; t < 4 && ticksOwed >= 1; t++) { cpu.tickTimers(); ticksOwed-- }
+  if (ticksOwed > 4) ticksOwed = 0
   tone(cpu.sound > 0)
 
   if (cpu.drawn) {
