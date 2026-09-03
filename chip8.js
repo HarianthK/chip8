@@ -71,6 +71,10 @@ export class Chip8 {
     // Sixteen bytes of waveform and the rate to play them at.
     this.pattern = new Uint8Array(16)
     this.pitch = 64
+    // Which keys the program has asked about. Nothing in the archive records
+    // its controls, but every program tells the machine what it is watching.
+    this.used = new Uint8Array(16)
+    this.anyKey = false
     this.memory.set(FONT, 0)
     this.memory.set(BIG_FONT, BIG_FONT_AT)
   }
@@ -176,10 +180,13 @@ export class Chip8 {
       case 0xc000: this.v[x] = Math.floor(Math.random() * 256) & nn; break
       case 0xd000: this.draw(this.v[x], this.v[y], n); break
 
-      case 0xe000:
-        if (nn === 0x9e && this.keys[this.v[x] & 0xf]) this.pc += 2
-        if (nn === 0xa1 && !this.keys[this.v[x] & 0xf]) this.pc += 2
+      case 0xe000: {
+        const asked = this.v[x] & 0xf
+        this.used[asked] = 1
+        if (nn === 0x9e && this.keys[asked]) this.pc += 2
+        if (nn === 0xa1 && !this.keys[asked]) this.pc += 2
         break
+      }
 
       case 0xf000: this.misc(x, nn); break
     }
@@ -215,7 +222,8 @@ export class Chip8 {
         break
       case 0x3a: this.pitch = this.v[x]; break
       case 0x07: this.v[x] = this.delay; break
-      case 0x0a: this.waitingFor = x; break
+      // Waiting on any key at all, rather than watching a particular one.
+      case 0x0a: this.waitingFor = x; this.anyKey = true; break
       case 0x15: this.delay = this.v[x]; break
       case 0x18: this.sound = this.v[x]; break
       case 0x1e: this.i = (this.i + this.v[x]) & 0xffff; break

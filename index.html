@@ -6,49 +6,108 @@
 <title>CHIP-8</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0f14'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23e08a3c'/%3E%3Crect x='9' y='9' width='4' height='4' fill='%23e08a3c'/%3E%3C/svg%3E">
 <style>
-  :root { color-scheme: dark; --scenic: #e08a3c; --muted: #8b9199; }
+  :root {
+    color-scheme: dark;
+    --scenic: #e08a3c;
+    --muted: #8b9199;
+    --ink: #f4f1ec;
+    --ground: #0b0f14;
+    --panel: #12171d;
+    --edge: rgb(255 255 255 / 0.08);
+  }
   * { box-sizing: border-box; }
   body {
-    margin: 0; min-height: 100vh; background: #0b0f14; color: #f4f1ec;
+    margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink);
     font: 14px/1.5 ui-sans-serif, system-ui, sans-serif;
-    display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 32px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 28px 16px 48px;
   }
   h1 { margin: 0; font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
   h1 span { color: var(--scenic); }
   p.lede { margin: 0; max-width: 46ch; text-align: center; color: var(--muted); font-size: 0.8rem; }
-  canvas {
-    width: min(100%, 640px); image-rendering: pixelated; border-radius: 8px;
-    border: 1px solid rgb(255 255 255 / 0.08); box-shadow: 0 24px 48px -12px rgb(0 0 0 / 0.6);
+
+  /* The cabinet. The screen is the point of the page, so it gets a bezel, a
+     marquee above it and the plate of information below. */
+  .cabinet {
+    width: min(100%, 720px); background: linear-gradient(#161c23, #0e131a);
+    border: 1px solid var(--edge); border-radius: 16px; padding: 18px;
+    box-shadow: 0 30px 60px -20px rgb(0 0 0 / 0.75), inset 0 1px 0 rgb(255 255 255 / 0.05);
+    display: flex; flex-direction: column; gap: 14px;
   }
+  .marquee { text-align: center; display: flex; flex-direction: column; gap: 5px; }
+  #title {
+    margin: 0; font-size: 1.45rem; font-weight: 600; letter-spacing: 0.02em;
+    color: var(--ink); text-shadow: 0 0 22px rgb(224 138 60 / 0.35);
+  }
+  #credits {
+    font-size: 0.7rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase;
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center;
+  }
+  .badge {
+    border: 1px solid var(--edge); border-radius: 999px; padding: 2px 8px;
+    font-size: 0.62rem; letter-spacing: 0.1em; color: var(--scenic);
+  }
+
+  .bezel { position: relative; border-radius: 10px; background: #05080b; padding: 10px; border: 1px solid var(--edge); }
+  canvas { display: block; width: 100%; image-rendering: pixelated; border-radius: 4px; }
+  /* Scanlines and a soft bloom, drawn over the canvas rather than in it, so the
+     emulator keeps rendering exact pixels underneath. */
+  .bezel::after {
+    content: ""; position: absolute; inset: 10px; border-radius: 4px; pointer-events: none;
+    background:
+      repeating-linear-gradient(rgb(0 0 0 / 0.22) 0 1px, transparent 1px 3px),
+      radial-gradient(120% 100% at 50% 0%, rgb(224 138 60 / 0.07), transparent 60%);
+  }
+
+  #about { margin: 0; text-align: center; font-size: 0.78rem; color: var(--muted); }
+  /* How to play, when it is something checked rather than guessed. */
+  #howto {
+    margin: 0; text-align: center; font-size: 0.78rem; color: var(--ink);
+    background: rgb(224 138 60 / 0.07); border: 1px solid rgb(224 138 60 / 0.22);
+    border-radius: 8px; padding: 9px 12px;
+  }
+  #howto b { color: var(--scenic); font-weight: 600; }
+  #howto[hidden] { display: none; }
+
   .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
   button, label.file {
-    background: rgb(255 255 255 / 0.06); color: inherit; border: 1px solid rgb(255 255 255 / 0.08);
+    background: rgb(255 255 255 / 0.06); color: inherit; border: 1px solid var(--edge);
     border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 0.75rem; cursor: pointer;
   }
   button:hover, label.file:hover { background: rgb(255 255 255 / 0.11); }
   input[type=file] { display: none; }
   input[type=range] { accent-color: var(--scenic); }
   select {
-    background: rgb(255 255 255 / 0.06); color: inherit; border: 1px solid rgb(255 255 255 / 0.08);
+    background: rgb(255 255 255 / 0.06); color: inherit; border: 1px solid var(--edge);
     border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 0.75rem; min-width: 260px;
     max-width: 100%;
   }
   /* The open list is drawn by the operating system and does not inherit the
      page's colours, which left pale grey text on white. */
-  select option { background: #12171d; color: #f4f1ec; }
-  #about { min-height: 2.4em; font-size: 0.72rem; }
+  select option { background: var(--panel); color: var(--ink); }
   .meta { color: var(--muted); font-size: 0.72rem; display: flex; gap: 16px; }
-  .meta b { color: #f4f1ec; font-weight: 500; }
+  .meta b { color: var(--ink); font-weight: 500; }
+
+  .padwrap { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  #padnote { font-size: 0.66rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
   table { border-collapse: collapse; font-size: 0.72rem; color: var(--muted); }
-  td { border: 1px solid rgb(255 255 255 / 0.08); padding: 5px 9px; text-align: center; }
+  td { border: 1px solid var(--edge); padding: 5px 9px; text-align: center; }
   td b { color: var(--scenic); font-weight: 600; }
   /* The pad is the only way to play on a phone, so it is a control rather
      than a diagram: big enough to hit, and it lights up while held. */
-  #pad td { cursor: pointer; user-select: none; -webkit-user-select: none;
-            touch-action: manipulation; padding: 12px 16px; }
-  #pad td.down { background: var(--scenic); }
-  #pad td.down b { color: #0b0f14; }
-  @media (max-width: 520px) { #pad td { padding: 16px 20px; font-size: 0.85rem; } }
+  #pad td {
+    cursor: pointer; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation; padding: 12px 16px; transition: background 0.12s, opacity 0.2s;
+  }
+  /* Nothing in the archive says which keys a game uses, so the machine reports
+     the ones it has been asked about and the rest fade back. */
+  #pad td { opacity: 0.28; }
+  #pad td.used { opacity: 1; border-color: rgb(224 138 60 / 0.4); }
+  #pad td.down { background: var(--scenic); opacity: 1; }
+  #pad td.down b { color: var(--ground); }
+  @media (max-width: 520px) {
+    #pad td { padding: 16px 20px; font-size: 0.85rem; }
+    #title { font-size: 1.2rem; }
+  }
   footer { color: var(--muted); font-size: 0.7rem; max-width: 52ch; text-align: center; }
   a { color: var(--muted); }
 </style>
@@ -60,13 +119,23 @@
     almost fifty years ago run here unchanged.
   </p>
 
-  <canvas id="screen" width="640" height="320"></canvas>
+  <div class="cabinet">
+    <div class="marquee">
+      <h2 id="title">Pick a program</h2>
+      <div id="credits"><span>103 of them, from the community archive</span></div>
+    </div>
+
+    <div class="bezel">
+      <canvas id="screen" width="640" height="320"></canvas>
+    </div>
+
+    <p id="about"></p>
+    <p id="howto" hidden></p>
+  </div>
 
   <div class="row">
     <select id="games" aria-label="Choose a program"><option value="">Loading programs...</option></select>
   </div>
-
-  <p id="about" class="lede"></p>
 
   <div class="row">
     <button data-rom="https://raw.githubusercontent.com/Timendus/chip8-test-suite/main/bin/3-corax%2B.ch8">Opcode test</button>
@@ -85,20 +154,24 @@
     <span>state <b id="status">idle</b></span>
   </div>
 
-  <table id="pad">
-    <tr><td data-code="Digit1"><b>1</b></td><td data-code="Digit2"><b>2</b></td><td data-code="Digit3"><b>3</b></td><td data-code="Digit4"><b>4</b></td></tr>
-    <tr><td data-code="KeyQ"><b>Q</b></td><td data-code="KeyW"><b>W</b></td><td data-code="KeyE"><b>E</b></td><td data-code="KeyR"><b>R</b></td></tr>
-    <tr><td data-code="KeyA"><b>A</b></td><td data-code="KeyS"><b>S</b></td><td data-code="KeyD"><b>D</b></td><td data-code="KeyF"><b>F</b></td></tr>
-    <tr><td data-code="KeyZ"><b>Z</b></td><td data-code="KeyX"><b>X</b></td><td data-code="KeyC"><b>C</b></td><td data-code="KeyV"><b>V</b></td></tr>
-  </table>
+  <div class="padwrap">
+    <span id="padnote">Keypad</span>
+    <table id="pad">
+      <tr><td data-code="Digit1"><b>1</b></td><td data-code="Digit2"><b>2</b></td><td data-code="Digit3"><b>3</b></td><td data-code="Digit4"><b>4</b></td></tr>
+      <tr><td data-code="KeyQ"><b>Q</b></td><td data-code="KeyW"><b>W</b></td><td data-code="KeyE"><b>E</b></td><td data-code="KeyR"><b>R</b></td></tr>
+      <tr><td data-code="KeyA"><b>A</b></td><td data-code="KeyS"><b>S</b></td><td data-code="KeyD"><b>D</b></td><td data-code="KeyF"><b>F</b></td></tr>
+      <tr><td data-code="KeyZ"><b>Z</b></td><td data-code="KeyX"><b>X</b></td><td data-code="KeyC"><b>C</b></td><td data-code="KeyV"><b>V</b></td></tr>
+    </table>
+  </div>
 
   <footer>
     Programs come from <a href="https://github.com/JohnEarnest/chip8Archive">John Earnest's
     CHIP-8 archive</a>, fetched when you pick one. Each carries the speed its
     author intended, which is why the slider moves by itself. All of them run:
     the original set, SUPER-CHIP's bigger screen, and XO-CHIP's second colour
-    and its waveform sound. Use the keys shown below, or tap them.
-    The two test programs are fetched from
+    and its waveform sound. Nothing in the archive records what a program's
+    controls are, so when you pick one, a second machine plays it in the
+    background and the keypad lights up whichever keys it was asked about. The two test programs are fetched from
     <a href="https://github.com/Timendus/chip8-test-suite">Timendus' CHIP-8 test suite</a>,
     which is GPL-3.0 and not redistributed here. They check every instruction
     against the spec. Games are not included; load your own file.

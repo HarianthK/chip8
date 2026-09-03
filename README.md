@@ -30,6 +30,24 @@ can also load your own `.ch8` file.
 
 On a phone, tap the keypad at the bottom of the page instead of typing.
 
+## Knowing how to play
+
+The archive records a title, an author and a sentence about each program, and
+nothing at all about its controls. So the page works them out. When you pick a
+program, a second machine loads it in the background, plays it for a few seconds
+pressing every key in turn, and reports which ones the program asked about. The
+keypad lights those and dims the rest.
+
+That is the only record of a game's controls that exists anywhere, and it is
+right for all 103 because it comes from the program rather than from a list
+somebody kept. It costs about sixteen milliseconds of work, spread over a few
+frames so the page never stalls.
+
+A handful of games also carry a line on how to play, in `notes.js`. Those are
+written by hand and only cover what I checked: either the game prints its
+controls on its own title screen, or I watched the thing on screen move and
+noted which key moved it.
+
 The original keypad was sixteen hex keys, mapped here as most emulators do:
 
 ```

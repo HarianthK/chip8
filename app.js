@@ -1,4 +1,5 @@
 import { Chip8, WIDTH } from "./chip8.js"
+import { NOTES } from "./notes.js"
 
 // The original keypad was 4x4 hex. This is the layout every emulator settled on.
 const KEYMAP = {
@@ -121,6 +122,67 @@ function release(key) {
   releasing.add(key)
 }
 
+// The pad shows which keys the program is watching, which is the only record
+// of a game's controls that exists anywhere.
+const cells = new Map()
+let lit = ""
+// Keys found by the scan below, before the reader has touched anything.
+let hinted = new Uint8Array(16)
+
+// Nothing records a game's controls, so a throwaway machine plays the program
+// in the background, pressing everything, and reports what it was asked about.
+let scan = null
+
+function startScan(bytes, perFrame) {
+  const probe = new Chip8()
+  probe.load(bytes)
+  const script = [{ frames: 180 }]
+  for (let k = 0; k < 16; k++) script.push({ down: k, frames: 6 }, { up: k, frames: 6 })
+  script.push({ frames: 120 })
+  // Capped, because a program asking for ten thousand a frame would spend the
+  // whole budget before the scan reached anything worth seeing.
+  scan = { probe, perFrame: Math.min(perFrame, 1200), script, at: 0, frame: 0, left: 0, spent: 0 }
+  hinted = new Uint8Array(16)
+}
+
+// Sliced against the clock so the page never stalls while it runs.
+function stepScan(ms) {
+  if (!scan) return
+  const until = performance.now() + ms
+  while (scan.at < scan.script.length && scan.spent < 3000000) {
+    const act = scan.script[scan.at]
+    if (scan.left === 0) {
+      if (act.down !== undefined) scan.probe.keyDown(act.down)
+      if (act.up !== undefined) scan.probe.keyUp(act.up)
+      scan.left = scan.perFrame
+    }
+    const chunk = Math.min(scan.left, 512)
+    for (let i = 0; i < chunk && !scan.probe.halted; i++) { scan.probe.step(); scan.spent++ }
+    scan.left -= chunk
+    if (scan.left <= 0) {
+      scan.probe.tickTimers()
+      scan.left = 0
+      if (++scan.frame >= act.frames) { scan.at++; scan.frame = 0 }
+    }
+    if (performance.now() >= until) break
+  }
+  hinted = scan.probe.used
+  if (scan.at >= scan.script.length || scan.spent >= 3000000) scan = null
+}
+
+function showUsedKeys() {
+  const now = cpu.used.join("") + hinted.join("")
+  if (now === lit) return
+  lit = now
+  let any = false
+  for (const [key, cell] of cells) {
+    const on = cpu.used[key] === 1 || hinted[key] === 1
+    cell.classList.toggle("used", on)
+    if (on) any = true
+  }
+  padnote.textContent = any ? "Keys this game uses" : "Keypad"
+}
+
 function settleKeys() {
   for (const key of [...releasing]) {
     if (frames > (pressedOn.get(key) ?? 0)) {
@@ -154,6 +216,8 @@ function frame(now) {
   }
 
   settleKeys()
+  stepScan(3)
+  showUsedKeys()
 
   // Timers run at 60Hz whatever the processor is doing.
   cpu.tickTimers()
@@ -186,6 +250,7 @@ let current = null
 
 function begin(bytes, name) {
   current = { bytes, name }
+  startScan(bytes, Math.max(1, Math.round(speed / 60)))
   cpu.load(bytes)
   paint()
   document.getElementById("loaded").textContent = name
@@ -207,6 +272,7 @@ document.querySelectorAll("[data-rom]").forEach((button) => {
     // longer running.
     games.value = ""
     about.textContent = ""
+    plainMarquee(button.textContent.trim())
     loadUrl(button.dataset.rom, button.textContent.trim())
   })
 })
@@ -216,6 +282,7 @@ document.getElementById("file").addEventListener("change", async (event) => {
   if (!file) return
   games.value = ""
   about.textContent = ""
+  plainMarquee(file.name)
   begin(new Uint8Array(await file.arrayBuffer()), file.name)
 })
 
@@ -254,6 +321,7 @@ addEventListener("keyup", (e) => {
 const pad = document.getElementById("pad")
 for (const cell of pad.querySelectorAll("td[data-code]")) {
   const key = KEYMAP[cell.dataset.code]
+  cells.set(key, cell)
   const onPointer = (on) => (e) => {
     e.preventDefault()
     if (on) cell.setPointerCapture?.(e.pointerId)
@@ -272,6 +340,36 @@ paint()
 const ARCHIVE = "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/master"
 const games = document.getElementById("games")
 const about = document.getElementById("about")
+const titleEl = document.getElementById("title")
+const creditsEl = document.getElementById("credits")
+const howto = document.getElementById("howto")
+const padnote = document.getElementById("padnote")
+
+const PLATFORM = { chip8: "CHIP-8", schip: "SUPER-CHIP", xochip: "XO-CHIP" }
+
+function marquee(id, meta) {
+  titleEl.textContent = meta.title || id
+  // One entry in the archive spells the field "athors", which used to leave
+  // that author uncredited.
+  const who = meta.authors ?? meta.athors ?? []
+  const bits = []
+  if (who.length) bits.push(`<span>${who.join(", ")}</span>`)
+  if (meta.event) bits.push(`<span>${meta.event}</span>`)
+  if (meta.release) bits.push(`<span>${String(meta.release).slice(0, 4)}</span>`)
+  const badge = PLATFORM[meta.platform]
+  if (badge) bits.push(`<span class="badge">${badge}</span>`)
+  creditsEl.innerHTML = bits.join("")
+
+  const note = NOTES[id]
+  howto.innerHTML = note ?? ""
+  howto.hidden = !note
+}
+
+function plainMarquee(name) {
+  titleEl.textContent = name
+  creditsEl.innerHTML = ""
+  howto.hidden = true
+}
 let manifest = {}
 
 fetch(`${ARCHIVE}/programs.json`)
@@ -307,5 +405,6 @@ games.addEventListener("change", async () => {
   }
 
   about.textContent = meta.desc ?? ""
-  await loadUrl(`${ARCHIVE}/roms/${id}.ch8`, id)
+  marquee(id, meta)
+  await loadUrl(`${ARCHIVE}/roms/${id}.ch8`, meta.title || id)
 })
