@@ -43,10 +43,21 @@ right for all 103 because it comes from the program rather than from a list
 somebody kept. It costs about sixteen milliseconds of work, spread over a few
 frames so the page never stalls.
 
-A handful of games also carry a line on how to play, in `notes.js`. Those are
+Knowing which key starts a game is most of the problem, and that can be worked
+out too. `scripts/find-start-keys.mjs` tries every key on its own fresh machine
+and keeps the one that clears the title screen when doing nothing does not. It
+first runs the program twice untouched, and gives up on it if the two runs
+differ, because a program using randomness cannot have a change blamed on a key.
+It finds a start key for 25 of the 103 and leaves the other 78 alone rather than
+guessing. The answers it gives for `knight` and `octoma` are `R` and `E`, which
+is exactly what those two print on their own title screens, so the method agrees
+with the games where the games can be asked.
+
+A handful also carry a fuller line on how to play, in `notes.js`. Those are
 written by hand and only cover what I checked: either the game prints its
-controls on its own title screen, or I watched the thing on screen move and
-noted which key moved it.
+controls on its own title screen, or I held each key and watched what moved.
+Most games could not be checked that way, because their screens keep moving on
+their own, so they were left alone.
 
 The original keypad was sixteen hex keys, mapped here as most emulators do:
 

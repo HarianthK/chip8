@@ -347,6 +347,11 @@ const padnote = document.getElementById("padnote")
 
 const PLATFORM = { chip8: "CHIP-8", schip: "SUPER-CHIP", xochip: "XO-CHIP" }
 
+// Worked out offline by scripts/find-start-keys.mjs, which tries every key on a
+// fresh machine and keeps the one that clears the title when nothing else does.
+let starts = {}
+fetch("start-keys.json").then((r) => (r.ok ? r.json() : {})).then((d) => { starts = d }).catch(() => {})
+
 function marquee(id, meta) {
   titleEl.textContent = meta.title || id
   // One entry in the archive spells the field "athors", which used to leave
@@ -360,9 +365,12 @@ function marquee(id, meta) {
   if (badge) bits.push(`<span class="badge">${badge}</span>`)
   creditsEl.innerHTML = bits.join("")
 
+  // A written note where one was checked, otherwise the start key if it is known.
   const note = NOTES[id]
-  howto.innerHTML = note ?? ""
-  howto.hidden = !note
+  const start = starts[id]
+  const line = note ?? (start ? `Press <b>${start}</b> to start.` : "")
+  howto.innerHTML = line
+  howto.hidden = !line
 }
 
 function plainMarquee(name) {
