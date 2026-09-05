@@ -53,7 +53,7 @@ guessing. The answers it gives for `knight` and `octoma` are `R` and `E`, which
 is exactly what those two print on their own title screens, so the method agrees
 with the games where the games can be asked.
 
-Sixteen also carry a fuller line on how to play, in `notes.js`. Those cover only
+Forty six also carry a fuller line on how to play, in `notes.js`. Those cover only
 what was checked: either the game prints its controls on its own screen, or each
 key was held in turn and the thing that moved was watched. `scripts/render.mjs`
 prints any program's screen as text, with a key held if you like, which is how
