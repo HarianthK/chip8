@@ -53,11 +53,16 @@ guessing. The answers it gives for `knight` and `octoma` are `R` and `E`, which
 is exactly what those two print on their own title screens, so the method agrees
 with the games where the games can be asked.
 
-A handful also carry a fuller line on how to play, in `notes.js`. Those are
-written by hand and only cover what I checked: either the game prints its
-controls on its own title screen, or I held each key and watched what moved.
-Most games could not be checked that way, because their screens keep moving on
-their own, so they were left alone.
+Sixteen also carry a fuller line on how to play, in `notes.js`. Those cover only
+what was checked: either the game prints its controls on its own screen, or each
+key was held in turn and the thing that moved was watched. `scripts/render.mjs`
+prints any program's screen as text, with a key held if you like, which is how
+that checking is done.
+
+Plenty of games resist it. If the same program rendered twice with identical
+arguments gives two different pictures, it uses randomness and no change can be
+pinned on a key. Others animate constantly, or have no player shape to follow.
+Those were left with no note rather than a guessed one.
 
 The original keypad was sixteen hex keys, mapped here as most emulators do:
 
