@@ -108,6 +108,31 @@ for drawing a Nokia 3310 screen, which is meant to sit still.
 is how the tests above were read without a browser. It takes a path, so point it
 at a file you have downloaded.
 
+## The instructions programs disagree about
+
+Six instructions have two accepted behaviours, and a program is written against
+one or the other. `8XY6` either shifts `VY` into `VX` or shifts `VX` in place.
+`FX55` either leaves `I` pointing past what it moved or leaves it where it was.
+The logic operations either clear `VF` or leave it alone. Sprites either wrap
+round the screen or clip at its edge. `BNNN` either adds `V0` or `VX`. And the
+oldest machines could only draw once per sixtieth of a second.
+
+The archive records which way round each program wants these, and for a long
+time this emulator ignored that and did the same thing for all of them. It was
+wrong for the majority: 88 of the 103 programs ask for `VY` shifting and it
+shifted `VX`, and 86 ask for `I` to move on and it left `I` alone.
+
+It now reads each program's settings and runs it the way its author meant. Doing
+that changed the picture in 13 of the 103, and left none of them blank.
+
+The reason this went unnoticed for so long is worth writing down. Every check
+here asked whether pixels came on. A program that shifts the wrong register
+still lights pixels, it just computes the wrong answer quietly, so the sweep,
+the start key detection and the how-to-play notes were all incapable of seeing
+it. The suite's quirks test had been running the whole time, but only ever to
+compare one build against another for regressions. Nobody read what it said. It
+now passes all six with the original machine's settings.
+
 ## Decisions worth knowing
 
 **Instruction order in the arithmetic opcodes.** The carry flag is written after

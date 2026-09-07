@@ -138,6 +138,8 @@ let scan = null
 
 function startScan(bytes, perFrame) {
   const probe = new Chip8()
+  // The probe has to run the program the same way the machine will.
+  probe.quirks = { ...cpu.quirks }
   probe.load(bytes)
   const script = [{ frames: 180 }]
   for (let k = 0; k < 16; k++) script.push({ down: k, frames: 6 }, { up: k, frames: 6 })
@@ -277,6 +279,7 @@ document.querySelectorAll("[data-rom]").forEach((button) => {
     // longer running.
     games.value = ""
     about.textContent = ""
+    setQuirks()
     plainMarquee(button.textContent.trim())
     loadUrl(button.dataset.rom, button.textContent.trim())
   })
@@ -287,6 +290,7 @@ document.getElementById("file").addEventListener("change", async (event) => {
   if (!file) return
   games.value = ""
   about.textContent = ""
+  setQuirks()
   plainMarquee(file.name)
   begin(new Uint8Array(await file.arrayBuffer()), file.name)
 })
@@ -351,6 +355,20 @@ const howto = document.getElementById("howto")
 const padnote = document.getElementById("padnote")
 
 const PLATFORM = { chip8: "CHIP-8", schip: "SUPER-CHIP", xochip: "XO-CHIP" }
+
+// A handful of instructions have two accepted behaviours, and the archive
+// records which one each program was written against.
+function setQuirks(options = {}) {
+  cpu.quirks = {
+    shift: !!options.shiftQuirks,
+    loadStore: !!options.loadStoreQuirks,
+    logic: !!options.logicQuirks,
+    clip: !!options.clipQuirks,
+    jump: !!options.jumpQuirks,
+    vfOrder: !!options.vfOrderQuirks,
+    vBlank: !!options.vBlankQuirks,
+  }
+}
 
 // Worked out offline by scripts/find-start-keys.mjs, which tries every key on a
 // fresh machine and keeps the one that clears the title when nothing else does.
@@ -418,6 +436,7 @@ games.addEventListener("change", async () => {
   }
 
   about.textContent = meta.desc ?? ""
+  setQuirks(meta.options)
   marquee(id, meta)
   await loadUrl(`${ARCHIVE}/roms/${id}.ch8`, meta.title || id)
 })
