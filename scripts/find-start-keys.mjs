@@ -6,6 +6,14 @@ const ARCHIVE = "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/mast
 const PAD = { 1:"1",2:"2",3:"3",12:"4", 4:"Q",5:"W",6:"E",13:"R", 7:"A",8:"S",9:"D",14:"F", 10:"Z",0:"X",11:"C",15:"V" }
 const SETTLE = 150, HOLD = 10, AFTER = 70
 
+// Runs start from the same sequence so they can be compared, and note whether
+// the program reached for a random number at all.
+let usedRandom = false
+const seeded = () => {
+  let n = 20260908
+  Math.random = () => { usedRandom = true; n = (n * 1103515245 + 12345) & 0x7fffffff; return n / 0x7fffffff }
+}
+
 const hash = (d) => { let h = 2166136261; for (let i = 0; i < d.length; i++) { h ^= d[i]; h = Math.imul(h, 16777619) } return h }
 const lit = (c) => { let n = 0; for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) if (c.display[y*WIDTH+x]) n++; return n }
 
@@ -17,15 +25,18 @@ for (const [name, meta] of Object.entries(manifest).sort()) {
   const per = Number(meta.options?.tickrate) || 10
   const bytes = new Uint8Array(await (await fetch(`${ARCHIVE}/roms/${name}.ch8`)).arrayBuffer())
   const boot = () => {
+    seeded()
     const c = new Chip8(); c.load(bytes)
     c.go = (f) => { for (let i=0;i<f;i++){ for(let j=0;j<per&&!c.halted;j++) c.step(); c.tickTimers() } }
     c.go(SETTLE)
     return c
   }
 
-  // A program using randomness gives a different picture every run, so a key
-  // cannot be blamed for the difference. Two idle runs settle that first.
+  // A program using randomness cannot have a change blamed on a key, whatever
+  // seed it is given, so those are left alone rather than answered by luck.
+  usedRandom = false
   const a = boot(); a.go(HOLD + AFTER)
+  if (usedRandom) { skipped.push([name, "uses randomness"]); continue }
   const b = boot(); b.go(HOLD + AFTER)
   if (hash(a.display) !== hash(b.display)) { skipped.push([name, "not repeatable"]); continue }
   const idle = hash(a.display)

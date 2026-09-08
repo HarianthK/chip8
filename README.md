@@ -48,8 +48,15 @@ out too. `scripts/find-start-keys.mjs` tries every key on its own fresh machine
 and keeps the one that clears the title screen when doing nothing does not. It
 first runs the program twice untouched, and gives up on it if the two runs
 differ, because a program using randomness cannot have a change blamed on a key.
-It finds a start key for 25 of the 103 and leaves the other 78 alone rather than
-guessing. The answers it gives for `knight` and `octoma` are `R` and `E`, which
+It finds a start key for 26 and leaves the rest alone rather than guessing.
+
+Running it twice used to give two different answers, which is a poor sign for a
+file that gets published. Programs reaching for a random number were the cause:
+the check meant to catch them only watched the settle window, so a program that
+turned random later slipped through and got an answer decided by chance. The
+script now notices when a program asks for a random number at any point and
+leaves it alone, and two runs give the same answer. That removed three entries
+and corrected two. The answers it gives for `knight` and `octoma` are `R` and `E`, which
 is exactly what those two print on their own title screens, so the method agrees
 with the games where the games can be asked.
 

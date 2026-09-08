@@ -47,6 +47,8 @@ export const NOTES = {
     "<b>R</b> to start. <b>W A S D</b> to move, <b>Q</b> to dodge, <b>E</b> to attack.",
   knumberknower:
     "<b>W</b> clicks through the title. A game of deliberately bad typography.",
+  mrworm:
+    "Any key starts it. <b>A</b> and <b>D</b> are the only keys it watches. Snake, with more directions than the usual four.",
   "mini-lights-out":
     "The sixteen keys are the grid, laid out just as they sit on the keypad. Press one to toggle that light, and turn them all out.",
   octoachip8story:
