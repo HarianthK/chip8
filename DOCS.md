@@ -97,18 +97,29 @@ op, which it did for the first `5XY0` attempt here. Both the correct and the
 broken path had ended on the same instruction, so the proof distinguished
 nothing.
 
-Three breakages are built in, taken from open reports against the suite:
+Eight breakages are built in and each one is run against all eight tests in the
+suite, because a gap in one test may be covered by another.
 
-| Breakage | Corax+ | Flags | Quirks |
-| --- | --- | --- | --- |
-| `5XY0` never skips | misses it | misses it | catches it |
-| `8XY7` takes its flag after the subtraction | misses it | misses it | misses it |
-| the shift takes its flag from `VX` | misses it | misses it | misses it |
+| Breakage | Noticed by |
+| --- | --- |
+| `3XNN` skips when it should not | the opcode, flags, quirks and scrolling tests |
+| `5XY0` never skips | the quirks, keypad, beep and scrolling tests, but not the opcode test |
+| `FX33` writes its digits backwards | the opcode test |
+| `8XY4` sets its carry the wrong way round | the flags test |
+| `8XY5` sets its borrow the wrong way round | the flags and quirks tests |
+| drawing never reports a collision | the quirks test only |
+| `8XY7` takes its flag after the subtraction | **nothing in the suite** |
+| the shift takes its flag from `VX` | **nothing in the suite** |
 
-The `8XY7` one is only wrong when `X` and `Y` are the same register, and the
-shift one only when the two registers differ in the bit being shifted out.
-Neither case appears in the suite, so a machine wrong in either way passes
-everything.
+The last two are worth dwelling on. Both are wrong only in a case the suite
+never exercises. `8XY7` is wrong when `X` and `Y` are the same register, and the
+shift is wrong when the two registers differ in the bit being shifted out, but
+every shift in the suite shifts a register into itself. An interpreter with
+either mistake passes all eight tests.
+
+The `5XY0` result is worth knowing too. The opcode test misses it, which is what
+was reported, but four other tests catch it, so the suite as a whole does not
+let it through.
 
 ## The instructions programs disagree about
 

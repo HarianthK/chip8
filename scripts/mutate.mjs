@@ -15,6 +15,50 @@ const BREAKAGES = {
     // the same place and the proof shows nothing.
     proof: { program: [0x6a05, 0x6b05, 0x5ab0, 0x6c01], register: 0xc, right: 0 },
   },
+  "no-collision-flag": {
+    what: "drawing never reports that it turned a pixel off",
+    catches: (op) => (op & 0xf000) === 0xd000,
+    run: (cpu, x, y, n) => { cpu.draw(cpu.v[x], cpu.v[y], n); cpu.v[0xf] = 0 },
+    // Drawing the same sprite twice over itself has to set the flag.
+    proof: { program: [0x6000, 0xf029, 0x6100, 0x6200, 0xd125, 0xd125], register: 0xf, right: 1 },
+  },
+  "carry-inverted": {
+    what: "8XY4 sets its flag when the sum fits, rather than when it overflows",
+    catches: (op) => (op & 0xf00f) === 0x8004,
+    run: (cpu, x, y) => {
+      const sum = cpu.v[x] + cpu.v[y]
+      cpu.v[x] = sum & 0xff
+      cpu.v[0xf] = sum > 0xff ? 0 : 1
+    },
+    proof: { program: [0x6ac8, 0x6b64, 0x8ab4], register: 0xf, right: 1 },
+  },
+  "borrow-inverted": {
+    what: "8XY5 sets its flag when there was a borrow, rather than when there was not",
+    catches: (op) => (op & 0xf00f) === 0x8005,
+    run: (cpu, x, y) => {
+      const a = cpu.v[x], b = cpu.v[y]
+      cpu.v[x] = (a - b) & 0xff
+      cpu.v[0xf] = a >= b ? 0 : 1
+    },
+    proof: { program: [0x6a0a, 0x6b05, 0x8ab5], register: 0xf, right: 1 },
+  },
+  "bcd-reversed": {
+    what: "FX33 writes units, tens, hundreds instead of hundreds, tens, units",
+    catches: (op) => (op & 0xf0ff) === 0xf033,
+    run: (cpu, x) => {
+      const n = cpu.v[x]
+      cpu.memory[cpu.i & 0xffff] = n % 10
+      cpu.memory[(cpu.i + 1) & 0xffff] = Math.floor(n / 10) % 10
+      cpu.memory[(cpu.i + 2) & 0xffff] = Math.floor(n / 100)
+    },
+    proof: { program: [0x6a7b, 0xa300, 0xfa33, 0xa300, 0xf265], register: 0x0, right: 1 },
+  },
+  "skip-inverted": {
+    what: "3XNN skips when the value does not match, rather than when it does",
+    catches: (op) => (op & 0xf000) === 0x3000,
+    run: (cpu, x, y, low, op) => { if (cpu.v[x] !== (op & 0xff)) cpu.pc = (cpu.pc + 2) & 0xffff },
+    proof: { program: [0x6a05, 0x3a05, 0x6b01], register: 0xb, right: 0 },
+  },
   "8xy7-flag-after": {
     what: "8XY7 works out its flag after the subtraction, using > rather than >=",
     catches: (op) => (op & 0xf00f) === 0x8007,
@@ -46,7 +90,7 @@ function machine(breakage, quirks = {}) {
     const op = (cpu.memory[cpu.pc] << 8) | cpu.memory[cpu.pc + 1]
     if (!breakage.catches(op)) return real()
     cpu.pc = (cpu.pc + 2) & 0xffff
-    breakage.run(cpu, (op & 0x0f00) >> 8, (op & 0x00f0) >> 4, op & 0xf)
+    breakage.run(cpu, (op & 0x0f00) >> 8, (op & 0x00f0) >> 4, op & 0xf, op)
   }
   return cpu
 }
@@ -79,8 +123,14 @@ function isReallyBroken(breakage) {
   return { good, bad, ok: good === right && bad !== right }
 }
 
+// Every test in the suite, because a gap in one may be covered by another.
+const TESTS = [
+  ["1-chip8-logo", []], ["2-ibm-logo", []], ["3-corax+", []], ["4-flags", []],
+  ["5-quirks", [1]], ["6-keypad", [1]], ["7-beep", [1]], ["8-scrolling", [1, 1]],
+]
+
 const roms = {}
-for (const name of ["3-corax+", "4-flags", "5-quirks"]) {
+for (const [name] of TESTS) {
   const res = await fetch(`${SUITE}/${name}.ch8`)
   if (!res.ok) { console.error(`could not fetch ${name}`); process.exit(1) }
   roms[name] = new Uint8Array(await res.arrayBuffer())
@@ -92,10 +142,11 @@ for (const [name, breakage] of Object.entries(BREAKAGES)) {
   const proof = isReallyBroken(breakage)
   console.log(`\n${name}: ${breakage.what}`)
   console.log(`  the breakage is real: correct gives ${proof.good}, broken gives ${proof.bad}${proof.ok ? "" : "  <- CHECK THIS, the breakage may be a no op"}`)
-  for (const [rom, pick] of [["3-corax+", []], ["4-flags", []], ["5-quirks", [1]]]) {
+  const caught = []
+  for (const [rom, pick] of TESTS) {
     const before = screen(machine(null), roms[rom], pick, 400)
     const after = screen(machine(breakage), roms[rom], pick, 400)
-    const rows = before.filter((r, i) => r !== after[i]).length
-    console.log(`  ${rom.padEnd(9)} ${rows ? `notices, ${rows} rows differ` : "does not notice"}`)
+    if (before.filter((r, i) => r !== after[i]).length) caught.push(rom)
   }
+  console.log(`  ${caught.length ? "noticed by " + caught.join(", ") : "NOT NOTICED BY ANY TEST IN THE SUITE"}`)
 }
