@@ -82,6 +82,34 @@ for drawing a Nokia 3310 screen, which is meant to sit still.
 is how the tests above were read without a browser. It takes a path, so point it
 at a file you have downloaded.
 
+## Asking whether a test would notice
+
+A test suite passing tells you nothing on its own. It has to be capable of
+failing, and the way to find out is to break the machine on purpose and see
+whether the suite complains.
+
+`scripts/mutate.mjs` does that. Each breakage replaces one instruction with a
+version that is wrong in a specific way, and carries a small program of its own
+proving it really is wrong. That second part matters: a breakage that behaves
+identically to the real thing would sail through every test and teach you
+nothing. The tool checks each one and says so when a breakage looks like a no
+op, which it did for the first `5XY0` attempt here. Both the correct and the
+broken path had ended on the same instruction, so the proof distinguished
+nothing.
+
+Three breakages are built in, taken from open reports against the suite:
+
+| Breakage | Corax+ | Flags | Quirks |
+| --- | --- | --- | --- |
+| `5XY0` never skips | misses it | misses it | catches it |
+| `8XY7` takes its flag after the subtraction | misses it | misses it | misses it |
+| the shift takes its flag from `VX` | misses it | misses it | misses it |
+
+The `8XY7` one is only wrong when `X` and `Y` are the same register, and the
+shift one only when the two registers differ in the bit being shifted out.
+Neither case appears in the suite, so a machine wrong in either way passes
+everything.
+
 ## The instructions programs disagree about
 
 Six instructions have two accepted behaviours, and a program is written against
