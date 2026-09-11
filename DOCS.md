@@ -121,6 +121,47 @@ The `5XY0` result is worth knowing too. The opcode test misses it, which is what
 was reported, but four other tests catch it, so the suite as a whole does not
 let it through.
 
+### What was done about them
+
+All three went upstream as patches to the suite rather than as bug reports,
+because the tool had already worked out what each test was missing.
+
+`5XY0` fails to be caught by the opcode test because the registers it compares
+hold different values, so a correct skip and a skip that never happens both fall
+through to the same place. Two registers holding the same value fix it, and the
+test already has spare ones. That is
+[pull request 35](https://github.com/Timendus/chip8-test-suite/pull/35), against
+issue 28.
+
+`8XY7` is only wrong when `X` and `Y` name the same register, which the flags
+test never does. Subtracting a register from itself has to give zero and leave
+no borrow, and the assertion folds into the `vF` mark the test already carries,
+so it costs no screen space. That is
+[pull request 36](https://github.com/Timendus/chip8-test-suite/pull/36), against
+issue 31.
+
+The shift was the awkward one. The quirks test sets `v5` and `v7` to zero before
+shifting, so the bit that gets shifted out is zero whichever register the
+interpreter reads it from. Giving those registers values whose shifted-out bit
+differs from `v6` and `v8` makes the flag say which register was really shifted,
+and the values can be picked so every existing check sees exactly what it saw
+before. The expected flag does not need spelling out per platform either, since
+it is 1 exactly when the quirk is on, which the values have already revealed.
+That is [pull request 37](https://github.com/Timendus/chip8-test-suite/pull/37),
+against issue 32.
+
+Each one was checked the same way. Build the current source and confirm it comes
+out byte for byte identical to the published ROM, so the baseline is real before
+anything changes. Then run the new ROM against an interpreter carrying the bug
+and confirm it now complains, run it against a correct one and confirm the
+screen is unchanged pixel for pixel, and re-run every other breakage to confirm
+nothing the test used to catch got lost.
+
+The shift patch only catches the bug on CHIP-8 and XO-CHIP. On both SCHIP
+settings the shift quirk is on, so `VX` is both the source and the flag source
+and the mistake cannot show itself. That is not a gap left behind, it is the
+bug being unreachable there.
+
 ## The instructions programs disagree about
 
 Six instructions have two accepted behaviours, and a program is written against
