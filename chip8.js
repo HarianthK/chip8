@@ -58,8 +58,10 @@ export class Chip8 {
     this.halted = false
     // Set when a program draws, so the screen is only repainted if it changed.
     this.drawn = false
-    // FX0A waits for a key; this holds the register it will land in.
+    // FX0A waits for a key; this holds the register it will land in, and
+    // then the key that went down, since it only resumes once that is let go.
     this.waitingFor = -1
+    this.pressedWhileWaiting = -1
     // The opcode that stopped the machine, if it met one it does not have.
     this.unsupported = 0
     // Low resolution until a program asks for the bigger screen.
@@ -112,15 +114,17 @@ export class Chip8 {
 
   keyDown(key) {
     this.keys[key] = 1
-    // A program parked on FX0A resumes the moment any key goes down.
-    if (this.waitingFor >= 0) {
-      this.v[this.waitingFor] = key
-      this.waitingFor = -1
-    }
+    if (this.waitingFor >= 0 && this.pressedWhileWaiting < 0) this.pressedWhileWaiting = key
   }
 
   keyUp(key) {
     this.keys[key] = 0
+    // A program parked on FX0A resumes when the key it saw go down comes up.
+    if (this.waitingFor >= 0 && key === this.pressedWhileWaiting) {
+      this.v[this.waitingFor] = key
+      this.waitingFor = -1
+      this.pressedWhileWaiting = -1
+    }
   }
 
   step() {
