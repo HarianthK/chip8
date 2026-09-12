@@ -162,6 +162,30 @@ settings the shift quirk is on, so `VX` is both the source and the flag source
 and the mistake cannot show itself. That is not a gap left behind, it is the
 bug being unreachable there.
 
+## What the suite says about this emulator
+
+Run through its menus properly, the quirks test passes every row as CHIP-8,
+as SUPER-CHIP modern and as XO-CHIP, and the scrolling test shows the complete
+picture on every path except one. The exception in both is SUPER-CHIP legacy,
+meaning the HP48 itself, which waited for the display only in low resolution
+and scrolled its 128x64 buffer as it was, so a low resolution scroll moved half
+a pixel. This emulator does neither, and it will not: its settings come from
+the archive, the archive describes programs in Octo's terms, and Octo has no
+such mode. No program here can ask for it.
+
+"Through its menus properly" is the important phrase. The SUPER-CHIP entry in
+the quirks test opens a second menu, and for a day the checks here pressed a
+key that landed on nothing, which made two of the four platforms pass by
+never running. The recording of which keys select what now lives in the
+verification scripts, and that mistake is recorded upstream on the pull
+request it touched.
+
+The keypad test caught something real. `FX0A` here resumed the moment a key
+went down. The original waits until it is let go, and the test reports NOT
+RELEASED when it is not. It was found while using this emulator as the
+reference to fix the same instruction in somebody else's, which is a good
+argument for never trusting a reference that has not itself been checked.
+
 ## The instructions programs disagree about
 
 Six instructions have two accepted behaviours, and a program is written against
