@@ -279,8 +279,11 @@ document.querySelectorAll("[data-rom]").forEach((button) => {
     // longer running.
     games.value = ""
     about.textContent = ""
-    setQuirks()
+    // A test ROM is written for one platform, and the button says which.
+    const wanted = (button.dataset.quirks ?? "").split(" ").filter(Boolean)
+    setQuirks(Object.fromEntries(wanted.map((q) => [`${q}Quirks`, true])))
     plainMarquee(button.textContent.trim())
+    if (button.dataset.note) { howto.innerHTML = button.dataset.note; howto.hidden = false }
     loadUrl(button.dataset.rom, button.textContent.trim())
   })
 })
