@@ -126,7 +126,7 @@ function isReallyBroken(breakage) {
 // Every test in the suite, because a gap in one may be covered by another.
 const TESTS = [
   ["1-chip8-logo", []], ["2-ibm-logo", []], ["3-corax+", []], ["4-flags", []],
-  ["5-quirks", [1]], ["6-keypad", [1]], ["7-beep", [1]], ["8-scrolling", [1, 1]],
+  ["5-quirks", [1]], ["6-keypad", [1]], ["7-beep", [1]], ["8-scrolling", [1, 1, 1]],
 ]
 
 const roms = {}
