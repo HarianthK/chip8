@@ -1,4 +1,4 @@
-# Five things an XO-CHIP interpreter has to get right, one row each.
+# Eight things an XO-CHIP interpreter has to get right, one row each.
 # A tick means the row passed. Built with Octo's compiler by scripts/build-tests.mjs.
 
 :alias row vd
@@ -7,9 +7,31 @@
 : main
   hires
   v9 := 0
-  row := 4
+  row := 2
 
-  # 1. scroll-up moves the picture up by the count given. A dot at row 40
+  # 1. Scrolling moves only the selected plane. A dot on each plane at the
+  #    same spot, then scroll-right with plane 2 selected: plane 1's dot must
+  #    still be where it was, and plane 2's must be four to the right.
+  plane 1
+  i := dot
+  v0 := 100
+  v1 := 60
+  sprite v0 v1 1
+  plane 2
+  sprite v0 v1 1
+  scroll-right
+  plane 1
+  sprite v0 v1 1
+  v2 := 1
+  if vf != 1 then v2 := 0
+  plane 2
+  v0 := 104
+  sprite v0 v1 1
+  if vf != 1 then v2 := 0
+  plane 1
+  v5 := v2
+
+  # 2. scroll-up moves the picture up by the count given. A dot at row 40
   #    scrolled up by 4 must then collide with a dot drawn at row 36.
   i := dot
   v0 := 110
@@ -22,9 +44,16 @@
   if vf != 1 then v2 := 0
   v1 := 36
   sprite v0 v1 1
+
+  # Both scrolls are done before anything is shown, since a scroll would
+  # move a result already on the screen.
+  v6 := v2
+  v2 := v5
+  show-result
+  v2 := v6
   show-result
 
-  # 2. i := long reaches memory above 4K. A byte written at 0x1234 must not
+  # 3. i := long reaches memory above 4K. A byte written at 0x1234 must not
   #    appear at 0x234, which is where a twelve bit i would have put it.
   v0 := 0x5A
   i := long 0x1234
@@ -40,7 +69,7 @@
   if v0 != 0x5A then v2 := 0
   show-result
 
-  # 3. A skip steps over the whole of i := long. The address word 0x6F01 is
+  # 4. A skip steps over the whole of i := long. The address word 0x6F01 is
   #    also the instruction vF := 1, so a two byte skip lands on it and runs it.
   vf := 0
   v0 := 1
@@ -49,7 +78,7 @@
   if vf != 0 then v2 := 0
   show-result
 
-  # 4. Planes are separate. The same pixel drawn in plane 1 and then plane 2
+  # 5. Planes are separate. The same pixel drawn in plane 1 and then plane 2
   #    must not collide, since it is two pixels on two layers.
   plane 1
   i := dot
@@ -65,7 +94,7 @@
   plane 1
   show-result
 
-  # 5. save vX - vY and load vX - vY keep i where it was. After both, loading
+  # 6. save vX - vY and load vX - vY keep i where it was. After both, loading
   #    from i has to give the first value back rather than something later.
   v3 := 7
   v4 := 8
@@ -81,6 +110,34 @@
   if v0 != 7 then v2 := 0
   show-result
 
+  # 7. saveflags and loadflags keep what they were given.
+  v0 := 0x33
+  saveflags v0
+  v0 := 0
+  loadflags v0
+  v2 := 1
+  if v0 != 0x33 then v2 := 0
+  show-result
+
+  # 8. A sprite drawn with n=0 in hires is sixteen wide and sixteen tall, so
+  #    a dot at eight across and fifteen down must land on it.
+  i := block
+  v0 := 60
+  v1 := 40
+  sprite v0 v1 0
+  i := dot
+  v0 := 68
+  v1 := 55
+  sprite v0 v1 1
+  v2 := 1
+  if vf != 1 then v2 := 0
+  sprite v0 v1 1
+  i := block
+  v0 := 60
+  v1 := 40
+  sprite v0 v1 0
+  show-result
+
   loop again
 
 # Draws the row number from the built in font, then a tick or a cross.
@@ -93,7 +150,7 @@
   i := cross
   if v2 == 1 then i := tick
   sprite col row 5
-  row += 8
+  row += 7
   return
 
 : tick
@@ -102,5 +159,8 @@
   0x88 0x50 0x20 0x50 0x88
 : dot
   0x80
+: block
+  0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF
+  0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF
 : scratch
   0x00 0x00 0x00 0x00

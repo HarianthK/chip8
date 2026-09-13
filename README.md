@@ -105,15 +105,18 @@ runs both over the archive and checks them against each other.
 
 Timendus' suite has no XO-CHIP test yet, and the one bug this emulator was
 found to have was an XO-CHIP one, so `tests/xochip.8o` is a small test of its
-own. Five rows, each a tick or a cross: `scroll-up`, memory above 4K through
-`i := long`, a skip clearing all four bytes of that instruction, planes being
-separate, and `save vX - vY` leaving `i` alone. It is on the page as a button,
+own. Eight rows, each a tick or a cross: scrolling only the selected plane,
+`scroll-up`, memory above 4K through `i := long`, a skip clearing all four
+bytes of that instruction, planes being separate, `save vX - vY` leaving `i`
+alone, saved flags coming back, and a 16 by 16 sprite really being sixteen
+wide. It is on the page as a button,
 and `node scripts/build-tests.mjs` rebuilds it with Octo's own compiler.
 
 Each row was checked the only way a test can be: `scripts/check-xochip.mjs`
-breaks each of the five things in turn and confirms that exactly that row goes
-red and no other. The mutation tool also runs the suite against those five
-breakages, and none of them is noticed there.
+breaks each of the eight things in turn and confirms that exactly that row goes
+red and no other. The mutation tool also runs the suite against those eight
+breakages, and none of them is noticed there. The plane scroll row found this
+emulator scrolling both planes whatever was selected, which is now fixed.
 
 ## What is not here
 

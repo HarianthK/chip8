@@ -279,6 +279,19 @@ exactly the matching row goes red. Writing that found a bug in a breakage,
 not in the test: the skip breakage was also catching `5XY2` and `5XY3` as if
 they were `5XY0`, which reddened the range row too.
 
+Three more rows went in the same afternoon: scrolling only the selected plane,
+`saveflags` and `loadflags` round-tripping, and a 16 by 16 sprite being sixteen
+wide. The first of those was red on this emulator with nothing broken, and the
+breakage written for it proved to be a no-op against the emulator, which is
+the mutation tool's way of saying the emulator already had the bug. It scrolled
+every plane whichever was selected. Octo moves only the selected ones, and so
+does this now. That is two real bugs the test has found in the machine it was
+written on, before it has been offered to anyone.
+
+Both scroll rows run before anything is shown, because a scroll would move a
+result already on the screen. The row check caught that too, as a row that
+went red only when a different row's scroll had run.
+
 If the three small pull requests upstream get a reply, this is ready to offer.
 
 ## The instructions programs disagree about

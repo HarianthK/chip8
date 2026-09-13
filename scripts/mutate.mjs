@@ -83,6 +83,32 @@ export const BREAKAGES = {
     // its address half runs 0x1300 as a jump instead, and v1 never gets set.
     proof: { program: [0x6005, 0x3005, 0xf000, 0x1300, 0x6101], register: 0x1, right: 1 },
   },
+  "scroll-ignores-plane": {
+    what: "scrolling moves both planes whichever one is selected",
+    catches: (op) => op === 0x00fb || op === 0x00fc || (op & 0xfff0) === 0x00c0 || (op & 0xfff0) === 0x00d0,
+    run: (cpu, x, y, low, op) => {
+      const keep = cpu.plane
+      cpu.plane = 3
+      if (op === 0x00fb) cpu.scrollSide(4); else if (op === 0x00fc) cpu.scrollSide(-4)
+      else if ((op & 0xfff0) === 0x00c0) cpu.scrollDown(low); else cpu.scrollDown(-low)
+      cpu.plane = keep
+    },
+    // Plane 2 selected, scroll right, then draw on plane 1 where its dot was.
+    proof: { program: [0xf101, 0x6000, 0x6100, 0xa212, 0xd011, 0xf201, 0x00fb, 0xf101, 0xd011, 0x8000], register: 0xf, right: 1 },
+  },
+  "loadflags-ignored": {
+    what: "FX85 does nothing, so flags saved with FX75 never come back",
+    catches: (op) => (op & 0xf0ff) === 0xf085,
+    run: () => {},
+    proof: { program: [0x6033, 0xf075, 0x6000, 0xf085], register: 0x0, right: 0x33 },
+  },
+  "big-sprite-eight-wide": {
+    what: "DXY0 in hires draws sixteen rows but only eight wide",
+    catches: (op) => (op & 0xf00f) === 0xd000,
+    run: (cpu, x, y) => cpu.draw(cpu.v[x], cpu.v[y], 16),
+    // A dot eight across into a sixteen wide block has to collide.
+    proof: { program: [0x00ff, 0x6000, 0x6100, 0xa212, 0xd010, 0x6008, 0x610f, 0xa232, 0xd011, 0x0000, ...Array(16).fill(0xffff), 0x8000], register: 0xf, right: 1 },
+  },
   "scroll-up-ignored": {
     what: "00DN does nothing, so the picture never moves up",
     catches: (op) => (op & 0xfff0) === 0x00d0,

@@ -153,7 +153,7 @@
     <button data-rom="https://raw.githubusercontent.com/Timendus/chip8-test-suite/main/bin/5-quirks.ch8" data-quirks="logic clip vBlank" data-note="The machine is set up as a CHIP-8, so pick <b>1</b> in the menu. Every row should get a tick.">Quirks test</button>
     <button data-rom="https://raw.githubusercontent.com/Timendus/chip8-test-suite/main/bin/6-keypad.ch8" data-note="<b>1</b>, <b>2</b> and <b>3</b> pick a test. The third one waits for a key and checks that it was let go.">Keypad test</button>
     <button data-rom="https://raw.githubusercontent.com/Timendus/chip8-test-suite/main/bin/8-scrolling.ch8" data-quirks="clip" data-note="Pick a platform and a resolution. Each arrow should end up inside its box.">Scrolling test</button>
-    <button data-rom="tests/xochip.ch8" data-note="Five things an XO-CHIP interpreter has to get right, one row each: scroll-up, memory above 4K, skipping a four byte instruction, separate planes, and save and load by range. Every row should get a tick.">XO-CHIP test</button>
+    <button data-rom="tests/xochip.ch8" data-note="Eight things an XO-CHIP interpreter has to get right, one row each: scrolling one plane, scroll-up, memory above 4K, skipping a four byte instruction, separate planes, save and load by range, saved flags, and 16 by 16 sprites. Every row should get a tick.">XO-CHIP test</button>
     <label class="file">Load a program<input id="file" type="file" accept=".ch8,.c8,.rom,application/octet-stream" /></label>
     <button id="reset">Reset</button>
   </div>
