@@ -1,5 +1,6 @@
 import { Chip8, WIDTH } from "./chip8.js"
 import { NOTES } from "./notes.js"
+import { disassemble } from "./disassemble.js"
 
 // The original keypad was 4x4 hex. This is the layout every emulator settled on.
 const KEYMAP = {
@@ -255,8 +256,18 @@ function start() {
 // Kept so Reset can start the same program again rather than empty the machine.
 let current = null
 
+const listing = document.getElementById("listing")
+// Worked out when the panel is opened, and again only if the program changed.
+listing.addEventListener("toggle", () => {
+  if (!listing.open || !current || listing.dataset.for === current.name) return
+  listing.querySelector("pre").textContent = disassemble(current.bytes)
+  listing.dataset.for = current.name
+})
+
 function begin(bytes, name) {
   current = { bytes, name }
+  listing.hidden = false
+  listing.open = false
   startScan(bytes, Math.max(1, Math.round(speed / 60)))
   cpu.load(bytes)
   paint()

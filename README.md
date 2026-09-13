@@ -74,7 +74,8 @@ node scripts/disassemble.mjs snake
 prints a program as Octo source: instructions where the machine would run
 them, bytes where it would not, and a label wherever something jumps or
 points. Which is which comes from walking every path from the start rather
-than guessing, and the listing is real Octo, so it compiles.
+than guessing, and the listing is real Octo, so it compiles. The same listing
+is on the page: load anything and open "Read the program" under the screen.
 
 ```bash
 node scripts/roundtrip.mjs

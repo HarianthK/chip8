@@ -4,7 +4,7 @@
 // Run: node scripts/roundtrip.mjs [name]
 import vm from "node:vm"
 import { Chip8 } from "../chip8.js"
-import { analyse, disassemble } from "./disassemble.mjs"
+import { analyse, disassemble } from "../disassemble.js"
 
 const ARCHIVE = "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/master"
 const OCTO = "https://raw.githubusercontent.com/JohnEarnest/Octo/gh-pages/js/compiler.js"
