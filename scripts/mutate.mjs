@@ -6,7 +6,7 @@ const SUITE = "https://raw.githubusercontent.com/Timendus/chip8-test-suite/main/
 
 // Each one replaces a single opcode family with a version that is wrong in a
 // specific way, along with a program proving it really is wrong.
-const BREAKAGES = {
+export const BREAKAGES = {
   "dead-5xy0": {
     what: "5XY0 never skips",
     catches: (op) => (op & 0xf00f) === 0x5000,
@@ -70,7 +70,7 @@ const BREAKAGES = {
   },
   "skip-two-over-long": {
     what: "a skip steps two bytes over the four byte i := long, landing inside it",
-    catches: (op) => [0x3000, 0x4000, 0x5000, 0x9000].includes(op & 0xf000) || (op & 0xf0ff) === 0xe09e || (op & 0xf0ff) === 0xe0a1,
+    catches: (op) => (op & 0xf000) === 0x3000 || (op & 0xf000) === 0x4000 || (op & 0xf00f) === 0x5000 || (op & 0xf00f) === 0x9000 || (op & 0xf0ff) === 0xe09e || (op & 0xf0ff) === 0xe0a1,
     run: (cpu, x, y, low, op) => {
       const top = op & 0xf000, nn = op & 0xff
       const k = cpu.keys[cpu.v[x] & 0xf]
@@ -82,6 +82,38 @@ const BREAKAGES = {
     // v0 is 5, so the skip is taken and should clear the long i; landing in
     // its address half runs 0x1300 as a jump instead, and v1 never gets set.
     proof: { program: [0x6005, 0x3005, 0xf000, 0x1300, 0x6101], register: 0x1, right: 1 },
+  },
+  "scroll-up-ignored": {
+    what: "00DN does nothing, so the picture never moves up",
+    catches: (op) => (op & 0xfff0) === 0x00d0,
+    run: () => {},
+    proof: { program: [0x6000, 0x6104, 0xa20e, 0xd011, 0x00d4, 0x6100, 0xd011, 0x8000], register: 0xf, right: 1 },
+  },
+  "long-i-twelve-bit": {
+    what: "F000 keeps only twelve bits of its address, so nothing above 4K is reachable",
+    catches: (op) => op === 0xf000,
+    run: (cpu) => { cpu.i = ((cpu.memory[cpu.pc] << 8) | cpu.memory[cpu.pc + 1]) & 0xfff; cpu.pc = (cpu.pc + 2) & 0xffff },
+    proof: { program: [0x6005, 0xf000, 0x1234, 0xf055, 0x6000, 0xa234, 0xf065], register: 0x0, right: 0 },
+  },
+  "plane-ignored": {
+    what: "FN01 does nothing, so everything is drawn on the first plane",
+    catches: (op) => (op & 0xf0ff) === 0xf001,
+    run: () => {},
+    proof: { program: [0xf101, 0x6000, 0x6100, 0xa20e, 0xd011, 0xf201, 0xd011, 0x8000], register: 0xf, right: 0 },
+  },
+  "range-save-moves-i": {
+    what: "5XY2 and 5XY3 move i past what they copied, the way FX55 does on the original",
+    catches: (op) => (op & 0xf00f) === 0x5002 || (op & 0xf00f) === 0x5003,
+    run: (cpu, x, y, low) => {
+      const [a, b] = x <= y ? [x, y] : [y, x]
+      for (let k = 0; k <= b - a; k++) {
+        const r = x <= y ? x + k : x - k
+        if (low === 2) cpu.memory[(cpu.i + k) & 0xffff] = cpu.v[r]
+        else cpu.v[r] = cpu.memory[(cpu.i + k) & 0xffff]
+      }
+      cpu.i = (cpu.i + (b - a) + 1) & 0xffff
+    },
+    proof: { program: [0x6307, 0x6408, 0xa20e, 0x5342, 0xf065, 0x0000, 0x0000, 0x0000], register: 0x0, right: 7 },
   },
   "shift-flag-from-vx": {
     what: "the shift takes its value from VY as it should, but its flag from VX",
@@ -96,7 +128,7 @@ const BREAKAGES = {
   },
 }
 
-function machine(breakage, quirks = {}) {
+export function machine(breakage, quirks = {}) {
   const cpu = new Chip8()
   Object.assign(cpu.quirks, quirks)
   if (!breakage) return cpu
@@ -125,6 +157,7 @@ const screen = (cpu, rom, pick, frames) => {
   return rows
 }
 
+if (process.argv[1] && process.argv[1].endsWith("mutate.mjs")) {
 // A breakage that behaves identically to the real thing would prove nothing,
 // so each one has to fail a program of its own before it is used.
 function isReallyBroken(breakage) {
@@ -138,14 +171,17 @@ function isReallyBroken(breakage) {
   return { good, bad, ok: good === right && bad !== right }
 }
 
-// Every test in the suite, because a gap in one may be covered by another.
+// Every test in the suite, because a gap in one may be covered by another,
+// plus the XO-CHIP test kept in this repository.
 const TESTS = [
   ["1-chip8-logo", []], ["2-ibm-logo", []], ["3-corax+", []], ["4-flags", []],
   ["5-quirks", [1]], ["6-keypad", [1]], ["7-beep", [1]], ["8-scrolling", [1, 1, 1]],
+  ["tests/xochip", []],
 ]
 
 const roms = {}
 for (const [name] of TESTS) {
+  if (name.startsWith("tests/")) { roms[name] = new Uint8Array((await import("node:fs")).readFileSync(`${name}.ch8`)); continue }
   const res = await fetch(`${SUITE}/${name}.ch8`)
   if (!res.ok) { console.error(`could not fetch ${name}`); process.exit(1) }
   roms[name] = new Uint8Array(await res.arrayBuffer())
@@ -164,4 +200,5 @@ for (const [name, breakage] of Object.entries(BREAKAGES)) {
     if (before.filter((r, i) => r !== after[i]).length) caught.push(rom)
   }
   console.log(`  ${caught.length ? "noticed by " + caught.join(", ") : "NOT NOTICED BY ANY TEST IN THE SUITE"}`)
+}
 }

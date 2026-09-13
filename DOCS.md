@@ -260,6 +260,27 @@ to light up `E` alone and now lights `Q W E A S D`.
 What neither method gives is what a key *does*. That still means sitting down
 with the game, which is why the notes file grows slowly.
 
+## A test of my own
+
+The long skip mutation showed that no ROM in Timendus' suite uses `i := long`
+at all, and an XO-CHIP test is on that project's wish list unwritten. Rather
+than wait, `tests/xochip.8o` is one, small and in Octo, built with Octo's own
+compiler so the bytes are what any XO-CHIP interpreter would be handed.
+
+Each row is one thing and is arranged so a wrong interpreter cannot pass by
+accident. The skip row is the neat one: the address it loads is `0x6F01`,
+which read as an instruction is `vF := 1`, so an interpreter that steps two
+bytes instead of four runs it, and the flag it leaves behind is the failure.
+The scroll row goes first because scrolling moves everything already drawn.
+
+A test that says pass has to be shown able to say fail. `check-xochip.mjs`
+applies each of the five breakages from the mutation tool and requires that
+exactly the matching row goes red. Writing that found a bug in a breakage,
+not in the test: the skip breakage was also catching `5XY2` and `5XY3` as if
+they were `5XY0`, which reddened the range row too.
+
+If the three small pull requests upstream get a reply, this is ready to offer.
+
 ## The instructions programs disagree about
 
 Six instructions have two accepted behaviours, and a program is written against

@@ -101,9 +101,23 @@ node scripts/keys.mjs
 
 runs both over the archive and checks them against each other.
 
+## The XO-CHIP test
+
+Timendus' suite has no XO-CHIP test yet, and the one bug this emulator was
+found to have was an XO-CHIP one, so `tests/xochip.8o` is a small test of its
+own. Five rows, each a tick or a cross: `scroll-up`, memory above 4K through
+`i := long`, a skip clearing all four bytes of that instruction, planes being
+separate, and `save vX - vY` leaving `i` alone. It is on the page as a button,
+and `node scripts/build-tests.mjs` rebuilds it with Octo's own compiler.
+
+Each row was checked the only way a test can be: `scripts/check-xochip.mjs`
+breaks each of the five things in turn and confirms that exactly that row goes
+red and no other. The mutation tool also runs the suite against those five
+breakages, and none of them is noticed there.
+
 ## What is not here
 
-Games, and no test programs either. The test buttons fetch from
+Games, and only one test program of my own. The other test buttons fetch from
 [Timendus' suite](https://github.com/Timendus/chip8-test-suite) at the moment
 you press them, because that suite is GPL-3.0 and bundling its files would
 attach those terms to this repository. Fetching what somebody else publishes,
