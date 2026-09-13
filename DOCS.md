@@ -212,6 +212,15 @@ call into 1977 machine code that every interpreter now steps over, so one such
 word is stepped over too. Two in a row is a table of small numbers, and the
 walk stops.
 
+Labels are named by what the walk learned: `sub_` for anything called,
+`L_` for anything jumped to, `sprite_` for data a draw reaches for within a
+few instructions of `i` being pointed at it, and `data_` for the rest. The
+instructions use those names rather than addresses. One subtlety: a program
+can point `i` or a jump into the middle of an instruction, and such an
+address never gets a line of its own, so it stays as a number. The listing
+works out which addresses it will land on before it names anything, which is
+what keeps the round trip at 104 of 104.
+
 The listing is Octo syntax, checked against Octo's own compiler rather than
 against a private assembler, because an assembler written to match the
 disassembler would confirm its mistakes. Every one of the 104 programs comes
