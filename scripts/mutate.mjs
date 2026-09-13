@@ -68,6 +68,21 @@ const BREAKAGES = {
     },
     proof: { program: [0x6a05, 0x8aa7], register: 0xf, right: 1 },
   },
+  "skip-two-over-long": {
+    what: "a skip steps two bytes over the four byte i := long, landing inside it",
+    catches: (op) => [0x3000, 0x4000, 0x5000, 0x9000].includes(op & 0xf000) || (op & 0xf0ff) === 0xe09e || (op & 0xf0ff) === 0xe0a1,
+    run: (cpu, x, y, low, op) => {
+      const top = op & 0xf000, nn = op & 0xff
+      const k = cpu.keys[cpu.v[x] & 0xf]
+      const taken = top === 0x3000 ? cpu.v[x] === nn : top === 0x4000 ? cpu.v[x] !== nn
+        : top === 0x5000 ? cpu.v[x] === cpu.v[y] : top === 0x9000 ? cpu.v[x] !== cpu.v[y]
+        : nn === 0x9e ? !!k : !k
+      if (taken) cpu.pc = (cpu.pc + 2) & 0xffff
+    },
+    // v0 is 5, so the skip is taken and should clear the long i; landing in
+    // its address half runs 0x1300 as a jump instead, and v1 never gets set.
+    proof: { program: [0x6005, 0x3005, 0xf000, 0x1300, 0x6101], register: 0x1, right: 1 },
+  },
   "shift-flag-from-vx": {
     what: "the shift takes its value from VY as it should, but its flag from VX",
     catches: (op) => (op & 0xf00f) === 0x8006 || (op & 0xf00f) === 0x800e,

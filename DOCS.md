@@ -97,7 +97,7 @@ op, which it did for the first `5XY0` attempt here. Both the correct and the
 broken path had ended on the same instruction, so the proof distinguished
 nothing.
 
-Eight breakages are built in and each one is run against all eight tests in the
+Nine breakages are built in and each one is run against all eight tests in the
 suite, because a gap in one test may be covered by another.
 
 | Breakage | Noticed by |
@@ -110,12 +110,19 @@ suite, because a gap in one test may be covered by another.
 | drawing never reports a collision | the quirks test only |
 | `8XY7` takes its flag after the subtraction | **nothing in the suite** |
 | the shift takes its flag from `VX` | **nothing in the suite** |
+| a skip steps two bytes over the four byte `i := long` | **nothing in the suite** |
 
 The last two are worth dwelling on. Both are wrong only in a case the suite
 never exercises. `8XY7` is wrong when `X` and `Y` are the same register, and the
 shift is wrong when the two registers differ in the bit being shifted out, but
 every shift in the suite shifts a register into itself. An interpreter with
 either mistake passes all eight tests.
+
+The long skip is different from the other two. Those are wrong in a case the
+suite does not exercise; this one is an instruction the suite never uses at
+all, on any path, so no menu choice would help. The maintainer knows: an
+XO-CHIP test covering it is on the project's own wish list and has not been
+written. It was the bug this emulator had, found by the disassembler.
 
 The `5XY0` result is worth knowing too. The opcode test misses it, which is what
 was reported, but four other tests catch it, so the suite as a whole does not
