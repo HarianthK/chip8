@@ -5,6 +5,8 @@ export const NOTES = {
     "Any key except <b>3</b> clicks on to the next line. Disc three of a courtroom drama.",
   BadKaiJuJu:
     "Hold <b>W</b> to raise the creature beside the tower. It only appears while the key is down.",
+  chickenScratch:
+    "<b>E</b> starts it. <b>W A S D</b> move the chicken around the maze. Pac-Man, but chicken.",
   binding:
     "<b>W A S D</b> move you around the room, <b>F</b> fires. Forty two screens across three floors, with a boss at the end.",
   blackrainbow:
@@ -79,6 +81,8 @@ export const NOTES = {
     "<b>W A S D</b> starts it and steers. There are no walls, so you pass through one edge and come back the other side.",
   snek:
     "<b>W A S D</b> steer the snake up, left, down and right. Minimalist Snake, in sixty five bytes.",
+  spacejam:
+    "Any key starts it. <b>W A S D</b> fly the ship up, left, down and right through the tunnel.",
   sub8:
     "A lander game. <b>W A S D</b> steer your craft through the cave, and <b>R</b> starts the run again.",
   superneatboy:
