@@ -77,6 +77,8 @@ export const NOTES = {
     "<b>1 2 3</b>, <b>Q W E</b> and <b>A S D</b> make a three by three tilt pad. Lean the needle back to upright.",
   slipperyslope:
     "<b>D</b> skates you on across the thinning ice. The other keys only twitch on the spot.",
+  skyward:
+    "<b>1</b> starts it. <b>W A S D</b> move the climber. Climb as high as you can.",
   snake:
     "<b>W A S D</b> starts it and steers. There are no walls, so you pass through one edge and come back the other side.",
   snek:
