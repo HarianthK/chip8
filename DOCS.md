@@ -186,6 +186,46 @@ RELEASED when it is not. It was found while using this emulator as the
 reference to fix the same instruction in somebody else's, which is a good
 argument for never trusting a reference that has not itself been checked.
 
+## Reading a program back
+
+The hard part of a CHIP-8 disassembler is not the opcodes, it is that sprites
+sit between instructions with nothing to mark them. Treat everything as code
+and every sprite becomes nonsense instructions. Treat everything as data and
+there is no listing. So the disassembler walks: from the start, follow every
+jump, call, skip and fall-through, and whatever the walk never reaches is
+data. That is the same rule the machine uses, which is why it works.
+
+Three idioms needed more than the plain walk. Programs written in Octo use
+`jump0` for computed jumps, usually into a row of `jump` lines or a row of
+same-sized blocks each ending in `return`, so the walk follows a `jump0` table
+for as long as the words there are jumps, and on paths that began in a table
+it tries the word after each ending as another entry. Programs that patch
+their own code leave a word of zeros where the patch goes, which decodes as a
+call into 1977 machine code that every interpreter now steps over, so one such
+word is stepped over too. Two in a row is a table of small numbers, and the
+walk stops.
+
+The listing is Octo syntax, checked against Octo's own compiler rather than
+against a private assembler, because an assembler written to match the
+disassembler would confirm its mistakes. Every one of the 104 programs comes
+back byte for byte. Flipping one mnemonic on purpose takes that to 0 of 104,
+which is how the check earns trust.
+
+The second check runs each program and records where it fetched instructions
+from and where it drew sprites from. Executing an address the listing called
+data means the walk missed a path; drawing from an address it called code
+means the walk was too eager. It is 98 of 104 and 103 of 104. The misses are
+programs that write code into memory at run time, patch the targets of their
+own jumps, or draw their own instructions as pixels on purpose, and no reading
+of the file can know those.
+
+That second check is what found the skip bug. `i := long` is four bytes and a
+skip has to clear all of it. The machine here stepped two, landed on the
+address half, and ran it as a jump. The walker knew the rule, the machine did
+not, and the disagreement showed up as an executed address inside an
+instruction. Three programs in the archive had been running wrong because of
+it.
+
 ## The instructions programs disagree about
 
 Six instructions have two accepted behaviours, and a program is written against

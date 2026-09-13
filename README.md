@@ -65,9 +65,30 @@ apparently blank screen.
 The slider overrides it. Winding a slow game up to the maximum is worth doing
 once.
 
+## Reading a program
+
+```bash
+node scripts/disassemble.mjs snake
+```
+
+prints a program as Octo source: instructions where the machine would run
+them, bytes where it would not, and a label wherever something jumps or
+points. Which is which comes from walking every path from the start rather
+than guessing, and the listing is real Octo, so it compiles.
+
+```bash
+node scripts/roundtrip.mjs
+```
+
+checks that across the archive two ways. Octo's own compiler has to turn every
+listing back into exactly the bytes it came from, which it does for all 104.
+And running each program must never execute an address the listing called
+data, which holds for 98; the other six write or patch their own code while
+running, and no reading of the file can see that.
+
 ## What is not here
 
-Games, and no test programs either. The two test buttons fetch from
+Games, and no test programs either. The test buttons fetch from
 [Timendus' suite](https://github.com/Timendus/chip8-test-suite) at the moment
 you press them, because that suite is GPL-3.0 and bundling its files would
 attach those terms to this repository. Fetching what somebody else publishes,
