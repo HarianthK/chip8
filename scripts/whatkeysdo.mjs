@@ -47,6 +47,10 @@ const begin = () => {
   return cpu
 }
 
+// A tap first, because a program waiting on FX0A only moves on when the key
+// is let go, then the key is held for the rest of the time.
+const tapThenHold = (cpu, k) => { cpu.keyDown(k); go(cpu, 4); cpu.keyUp(k); go(cpu, 4); cpu.keyDown(k); go(cpu, hold - 8) }
+
 // Where the lit pixels sit, so a shift shows up as a direction.
 function shape(cpu) {
   let n = 0, sx = 0, sy = 0
@@ -79,8 +83,7 @@ console.log(`\nleft alone for ${hold} more frames: ${rest.n} lit pixels${picture
 
 for (let k = 0; k < 16; k++) {
   const cpu = begin()
-  cpu.keyDown(k)
-  go(cpu, hold)
+  tapThenHold(cpu, k)
   const s = shape(cpu)
   const pic = picture(cpu)
   if (pic === restPic) continue
@@ -94,6 +97,6 @@ for (let k = 0; k < 16; k++) {
 console.log(`\n--- left alone ---\n${restPic}`)
 if (args.includes("--show")) {
   const k = PAD.indexOf(args[args.indexOf("--show") + 1]?.toUpperCase())
-  const cpu = begin(); cpu.keyDown(k); go(cpu, hold)
+  const cpu = begin(); tapThenHold(cpu, k)
   console.log(`\n--- holding ${PAD[k]} ---\n${picture(cpu)}`)
 }

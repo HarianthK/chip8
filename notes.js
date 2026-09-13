@@ -21,6 +21,8 @@ export const NOTES = {
     "<b>W</b> to fall. You go down an endless hole and then you die, and there is no avoiding it.",
   DVN8:
     "A first person dungeon crawl. <b>W A S D</b> take you through it, redrawing the whole view at each step.",
+  eaty:
+    "<b>E</b> starts it. <b>W A S D</b> walk the alien around the screen.",
   expedition:
     "A short story that reads itself. Hold <b>E</b> to keep the current line up, and let go to move on.",
   flightrunner:
@@ -65,6 +67,8 @@ export const NOTES = {
     "Hold <b>4</b> to start, because a tap is not enough. A game of hungry hungry octopods.",
   outlaw:
     "<b>W A S D</b> move your gunman, <b>E</b> fires a shot. A duel with the outlaw across the screen.",
+  piper:
+    "Any key starts it. <b>W A S D</b> move the bird along the beach, and <b>E</b> hides her in the sand when a wave comes.",
   redOctober:
     "Press any key to move the opening text on. A futuristic role playing game.",
   sens8tion:
@@ -85,6 +89,8 @@ export const NOTES = {
     "<b>W</b> starts it. <b>A</b> and <b>D</b> are your only controls, steering you around the walls as they close in.",
   sweetcopter:
     "<b>E</b> steers the copter sideways as it falls. An adaptation of Swing Copters.",
+  tank:
+    "The two numbers at the top are your shot. <b>A</b> and <b>D</b> change the first, <b>W</b> and <b>S</b> the second, and <b>F</b> fires it. A two player artillery game.",
   tick:
     "Tap <b>Z</b> in time with the beat. A rhythm game with one button, so timing is all of it.",
   trucksimul8or:
