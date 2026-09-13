@@ -132,6 +132,9 @@ export class Chip8 {
 
     const opcode = (this.memory[this.pc] << 8) | this.memory[this.pc + 1]
     this.pc = (this.pc + 2) & 0xffff
+    // A skip steps over the whole of the next instruction, and F000 is four
+    // bytes long. Landing in the middle of it would run its address as a jump.
+    const skip = () => { this.pc = (this.pc + (((this.memory[this.pc] << 8) | this.memory[this.pc + 1]) === 0xf000 ? 4 : 2)) & 0xffff }
 
     const nnn = opcode & 0x0fff
     const nn = opcode & 0x00ff
@@ -173,8 +176,8 @@ export class Chip8 {
         this.pc = nnn
         break
 
-      case 0x3000: if (this.v[x] === nn) this.pc += 2; break
-      case 0x4000: if (this.v[x] !== nn) this.pc += 2; break
+      case 0x3000: if (this.v[x] === nn) skip(); break
+      case 0x4000: if (this.v[x] !== nn) skip(); break
       case 0x5000:
         if (n === 2 || n === 3) {
           const step = x <= y ? 1 : -1
@@ -183,14 +186,14 @@ export class Chip8 {
             else this.v[r] = this.memory[(this.i + o) & 0xffff]
             if (r === y) break
           }
-        } else if (this.v[x] === this.v[y]) this.pc += 2
+        } else if (this.v[x] === this.v[y]) skip()
         break
       case 0x6000: this.v[x] = nn; break
       case 0x7000: this.v[x] = (this.v[x] + nn) & 0xff; break
 
       case 0x8000: this.arithmetic(x, y, n); break
 
-      case 0x9000: if (this.v[x] !== this.v[y]) this.pc += 2; break
+      case 0x9000: if (this.v[x] !== this.v[y]) skip(); break
       case 0xa000: this.i = nnn; break
       case 0xb000:
         this.pc = (nnn + this.v[this.quirks.jump ? (nnn >> 8) & 0xf : 0]) & 0xfff
@@ -207,8 +210,8 @@ export class Chip8 {
       case 0xe000: {
         const asked = this.v[x] & 0xf
         this.used[asked] = 1
-        if (nn === 0x9e && this.keys[asked]) this.pc += 2
-        if (nn === 0xa1 && !this.keys[asked]) this.pc += 2
+        if (nn === 0x9e && this.keys[asked]) skip()
+        if (nn === 0xa1 && !this.keys[asked]) skip()
         break
       }
 
