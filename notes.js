@@ -29,6 +29,8 @@ export const NOTES = {
     "A short story that reads itself. Hold <b>E</b> to keep the current line up, and let go to move on.",
   flightrunner:
     "<b>A</b> and <b>D</b> steer left and right.",
+  flutterby:
+    "<b>W</b> flaps the butterfly upward, <b>S</b> folds its wings. Get to the flowers.",
   garlicscape:
     "<b>W A S D</b> move you around. Collect aliums, avoid moths, pet llamas.",
   ghostEscape:
