@@ -233,6 +233,33 @@ not, and the disagreement showed up as an executed address inside an
 instruction. Three programs in the archive had been running wrong because of
 it.
 
+## Working out the controls twice
+
+The page used to find a program's keys one way: run it on a throwaway machine,
+press everything, and see what it asks about. That only finds keys on paths the
+probe reaches in its budget, which for a program that opens on a menu is often
+just the one key that gets past the menu.
+
+Reading finds them the other way. The walker already follows every path from
+the start, so carrying what each register is known to hold along those paths
+says which key each `EX9E` and `EXA1` is asking about. Where two paths disagree
+about a register, it becomes unknown, and where a key number is loaded from
+memory or worked out at run time, reading says so rather than guessing.
+
+The two methods check each other, and that is the point of having both. Reading
+sees every key the program could ask about; playing only sees the ones it
+reached. So wherever reading claims to know them all, it has to cover what
+playing found. It does, for all 104. Dropping `EXA1` from the reader on purpose
+breaks that for 24 of them, so the check can fail.
+
+Fifty eight programs work at least one key number out at run time, and for
+those the probe is still the only way. Twenty six watch a key the probe never
+reached, and those are the ones the page now gets right: Chicken Scratch used
+to light up `E` alone and now lights `Q W E A S D`.
+
+What neither method gives is what a key *does*. That still means sitting down
+with the game, which is why the notes file grows slowly.
+
 ## The instructions programs disagree about
 
 Six instructions have two accepted behaviours, and a program is written against

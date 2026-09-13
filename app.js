@@ -1,6 +1,6 @@
 import { Chip8, WIDTH } from "./chip8.js"
 import { NOTES } from "./notes.js"
-import { disassemble } from "./disassemble.js"
+import { disassemble, keysWatched } from "./disassemble.js"
 
 // The original keypad was 4x4 hex. This is the layout every emulator settled on.
 const KEYMAP = {
@@ -132,6 +132,8 @@ const cells = new Map()
 let lit = ""
 // Keys found by the scan below, before the reader has touched anything.
 let hinted = new Uint8Array(16)
+// Keys named by reading the program, which is ready before it has run a step.
+let read = new Uint8Array(16)
 
 // Nothing records a game's controls, so a throwaway machine plays the program
 // in the background, pressing everything, and reports what it was asked about.
@@ -149,6 +151,10 @@ function startScan(bytes, perFrame) {
   // whole budget before the scan reached anything worth seeing.
   scan = { probe, perFrame: Math.min(perFrame, 1200), script, at: 0, frame: 0, left: 0, spent: 0 }
   hinted = new Uint8Array(16)
+  read = new Uint8Array(16)
+  // Reading names every key a program asks about by a constant, at once. The
+  // scan still runs, for the ones it works out while going.
+  try { for (const k of keysWatched(bytes).asked) read[k] = 1 } catch {}
 }
 
 // Sliced against the clock so the page never stalls while it runs.
@@ -177,12 +183,12 @@ function stepScan(ms) {
 }
 
 function showUsedKeys() {
-  const now = cpu.used.join("") + hinted.join("")
+  const now = cpu.used.join("") + hinted.join("") + read.join("")
   if (now === lit) return
   lit = now
   let any = false
   for (const [key, cell] of cells) {
-    const on = cpu.used[key] === 1 || hinted[key] === 1
+    const on = cpu.used[key] === 1 || hinted[key] === 1 || read[key] === 1
     cell.classList.toggle("used", on)
     if (on) any = true
   }

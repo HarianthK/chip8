@@ -87,6 +87,20 @@ And running each program must never execute an address the listing called
 data, which holds for 98; the other six write or patch their own code while
 running, and no reading of the file can see that.
 
+## Which keys a game uses
+
+The keypad on the page lights up the keys a program watches, found two ways.
+Reading it works out which key each test is asking about by following every
+path from the start; playing it presses everything on a throwaway machine and
+sees what gets asked. Reading is ready at once and covers paths the probe never
+reaches, playing catches the programs that work a key number out as they go.
+
+```bash
+node scripts/keys.mjs
+```
+
+runs both over the archive and checks them against each other.
+
 ## What is not here
 
 Games, and no test programs either. The test buttons fetch from
