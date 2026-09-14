@@ -37,5 +37,6 @@ for (const [id, note] of Object.entries(NOTES)) {
   // neither method reached, so those only get a question mark.
   if (bad.length) { if (read.anyKey) unsure++; else wrong++; console.log(`${read.anyKey ? "?   " : "FAIL"} ${id.padEnd(20)} names ${bad.map((k) => PAD[k]).join(" ")}, which the program was not seen to ask about`) }
 }
-console.log(`\n${checked} notes name keys; ${wrong} name a key the program does not ask about`)
+console.log(`
+${checked} notes name keys; ${wrong} name a key the program does not ask about; ${unsure} name one that could not be confirmed either way`)
 process.exit(wrong ? 1 : 0)
