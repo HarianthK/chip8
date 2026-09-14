@@ -37,14 +37,14 @@ const fresh = () => {
 }
 const go = (cpu, n) => { for (let f = 0; f < n && !cpu.halted; f++) { for (let i = 0; i < perFrame && !cpu.halted; i++) cpu.step(); cpu.tickTimers() } }
 
+// --start takes one key or a comma separated sequence, for programs with
+// several screens before play. Each press is held for --start-hold frames.
 const startArg = args.indexOf("--start")
-const startKey = startArg >= 0 ? PAD.indexOf(args[startArg + 1].toUpperCase()) : PAD.indexOf(starts[name] ?? "")
-// Settle, press the start key if there is one, then settle again.
+const startKeys = (startArg >= 0 ? args[startArg + 1].split(",") : [starts[name] ?? ""]).map((k) => PAD.indexOf(k.toUpperCase())).filter((k) => k >= 0)
 const begin = () => {
   const cpu = fresh()
   go(cpu, settle)
-  // Some programs want the start key held rather than tapped, so --start-hold N.
-  if (startKey >= 0) { cpu.keyDown(startKey); go(cpu, flag("--start-hold", 8)); cpu.keyUp(startKey); go(cpu, settle) }
+  for (const k of startKeys) { cpu.keyDown(k); go(cpu, flag("--start-hold", 8)); cpu.keyUp(k); go(cpu, settle) }
   return cpu
 }
 
@@ -79,7 +79,7 @@ const rest = shape(still)
 const restPic = picture(still)
 
 console.log(`${name}: ${meta.title ?? ""} ${meta.desc ? "\n" + meta.desc : ""}`)
-console.log(`start key: ${startKey >= 0 ? PAD[startKey] : "none known"}`)
+console.log(`start keys: ${startKeys.length ? startKeys.map((k) => PAD[k]).join(", ") : "none known"}`)
 console.log(`\nleft alone for ${hold} more frames: ${rest.n} lit pixels${picture(base) === restPic ? ", picture still" : ", picture moving on its own"}\n`)
 
 for (let k = 0; k < 16; k++) {

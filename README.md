@@ -30,16 +30,22 @@ can also load your own `.ch8` file.
 
 On a phone, tap the keypad at the bottom of the page instead of typing.
 
+The address follows what you pick, so `?p=snake` on the end of the page's
+address opens straight onto that program, which makes a game something you can
+send as a link.
+
 ## Knowing how to play
 
 Nothing in the archive says how any of these are played, so the page works it
 out. Pick a program and the keypad below lights up the keys that program
-watches, dimming the rest. Forty seven also carry a written line on how to play,
-and twenty six more say which key starts them.
+watches, dimming the rest. Fifty four also carry a written line on how to play,
+and nine more say which key starts them.
 
-All of that is worked out from the programs themselves rather than from a list
-somebody kept, which is why it covers every one of them. How it is done, and
-what it refuses to guess at, is in [DOCS.md](DOCS.md).
+The keys are worked out from the programs themselves, two ways that check each
+other, which is why that part covers every one of them. The written lines are
+the opposite: each was watched happening, and a check holds every key they
+name against what the program actually asks about. How it is done, and what it
+refuses to guess at, is in [DOCS.md](DOCS.md).
 
 The original keypad was sixteen hex keys, mapped here as most emulators do:
 
@@ -99,7 +105,14 @@ reaches, playing catches the programs that work a key number out as they go.
 node scripts/keys.mjs
 ```
 
-runs both over the archive and checks them against each other.
+runs both over the archive and checks them against each other, and
+
+```bash
+node scripts/whatkeysdo.mjs piper --start 1
+```
+
+holds each key a program watches and says how the picture moved, which is
+how a how-to-play line gets written from something seen rather than assumed.
 
 ## The XO-CHIP test
 
