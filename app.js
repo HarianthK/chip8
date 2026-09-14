@@ -367,6 +367,18 @@ paint()
 // The manifest carries each program's author, description and tick rate. That
 // rate is instructions per frame, so sixty of them make a second.
 const ARCHIVE = "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/master"
+// Games written in Nibble, the language that compiles for this machine. They
+// live in that project and are fetched from it, the way the archive's are.
+const NIBBLE = "https://raw.githubusercontent.com/HarianthK/nibble/main/games"
+const NIBBLE_GAMES = {
+  "nibble-meteors": { title: "Meteors", desc: "Dodge the falling rocks. Three lives, then it tells you the score." },
+  "nibble-snake": { title: "Snake", desc: "Eat the food, do not eat yourself. The body is two arrays used as a ring." },
+  "nibble-pong": { title: "Pong", desc: "Two players, first to nine." },
+  "nibble-breakout": { title: "Breakout", desc: "Clear all twenty four bricks. Three lives." },
+}
+for (const [id, meta] of Object.entries(NIBBLE_GAMES)) {
+  Object.assign(meta, { authors: ["HarianthK"], platform: "chip8", nibble: true, options: { tickrate: "100" }, rom: `${NIBBLE}/${id.slice(7)}.ch8` })
+}
 const games = document.getElementById("games")
 const about = document.getElementById("about")
 const titleEl = document.getElementById("title")
@@ -406,6 +418,7 @@ function marquee(id, meta) {
   if (meta.release) bits.push(`<span>${String(meta.release).slice(0, 4)}</span>`)
   const badge = PLATFORM[meta.platform]
   if (badge) bits.push(`<span class="badge">${badge}</span>`)
+  if (meta.nibble) bits.push(`<a href="https://nibble-lang.vercel.app/?example=${meta.title}">written in Nibble</a>`)
   creditsEl.innerHTML = bits.join("")
 
   // A written note where one was checked, otherwise the start key if it is known.
@@ -426,19 +439,28 @@ let manifest = {}
 fetch(`${ARCHIVE}/programs.json`)
   .then((r) => (r.ok ? r.json() : {}))
   .then((data) => {
-    manifest = data
+    manifest = { ...data, ...NIBBLE_GAMES }
     const playable = Object.entries(data).sort((a, b) => a[0].localeCompare(b[0]))
 
-    games.innerHTML = `<option value="">Pick a program (${playable.length})</option>`
+    games.innerHTML = `<option value="">Pick a program (${playable.length + Object.keys(NIBBLE_GAMES).length})</option>`
+    const group = (label) => { const g = document.createElement("optgroup"); g.label = label; games.append(g); return g }
+    const mine = group("Written in Nibble, for this machine")
+    for (const [id, meta] of Object.entries(NIBBLE_GAMES)) {
+      const option = document.createElement("option")
+      option.value = id
+      option.textContent = meta.title
+      mine.append(option)
+    }
+    const theirs = group("From the community archive")
     for (const [id, meta] of playable) {
       const option = document.createElement("option")
       option.value = id
       option.textContent = `${id}${meta.authors?.length ? ` by ${meta.authors[0]}` : ""}`
-      games.append(option)
+      theirs.append(option)
     }
     // A link can name a program, so one can be shared as an address.
     const wanted = new URLSearchParams(location.search).get("p")
-    if (wanted && data[wanted]) { games.value = wanted; games.dispatchEvent(new Event("change")) }
+    if (wanted && manifest[wanted]) { games.value = wanted; games.dispatchEvent(new Event("change")) }
   })
   .catch(() => {
     games.innerHTML = '<option value="">Could not reach the archive</option>'
@@ -462,5 +484,5 @@ games.addEventListener("change", async () => {
   about.textContent = meta.desc ?? ""
   setQuirks(meta.options)
   marquee(id, meta)
-  await loadUrl(`${ARCHIVE}/roms/${id}.ch8`, meta.title || id)
+  await loadUrl(meta.rom ?? `${ARCHIVE}/roms/${id}.ch8`, meta.title || id)
 })

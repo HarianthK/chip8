@@ -53,6 +53,14 @@ export const NOTES = {
     "<b>R</b> to start. <b>W A S D</b> to move, <b>Q</b> to dodge, <b>E</b> to attack.",
   knumberknower:
     "<b>W</b> clicks through the title. A game of deliberately bad typography.",
+  "nibble-breakout":
+    "<b>A</b> and <b>D</b> move the paddle. Clear all twenty four bricks; you have three lives.",
+  "nibble-meteors":
+    "<b>A</b> and <b>D</b> move the ship. Dodge the rocks. Three lives, then <b>E</b> plays again.",
+  "nibble-pong":
+    "<b>W</b> and <b>S</b> move the left paddle, <b>R</b> and <b>F</b> the right. First to nine, then <b>E</b> plays again.",
+  "nibble-snake":
+    "<b>W A S D</b> steer. Eat the food, do not eat yourself. <b>E</b> plays again.",
   mrworm:
     "Any key starts it. <b>A</b> and <b>D</b> are the only keys it watches. Snake, with more directions than the usual four.",
   "mini-lights-out":

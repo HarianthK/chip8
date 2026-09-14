@@ -25,8 +25,10 @@ python -m http.server 3100
 
 Then open <http://localhost:3100>. Pick a program from the dropdown and it
 plays. Every one of them, fetched from [John Earnest's CHIP-8
-archive](https://github.com/JohnEarnest/chip8Archive) when you choose one. You
-can also load your own `.ch8` file.
+archive](https://github.com/JohnEarnest/chip8Archive) when you choose one, and
+above them the four games written in [Nibble](https://github.com/HarianthK/nibble),
+the language that compiles for this machine, fetched from there the same way.
+You can also load your own `.ch8` file.
 
 On a phone, tap the keypad at the bottom of the page instead of typing.
 

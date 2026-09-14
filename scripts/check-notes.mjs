@@ -23,7 +23,7 @@ function played(rom, options = {}) {
 const manifest = await archive()
 let wrong = 0, unsure = 0, checked = 0
 for (const [id, note] of Object.entries(NOTES)) {
-  if (!manifest[id]) { console.log(`    ${id.padEnd(20)} NOT IN THE ARCHIVE`); wrong++; continue }
+  if (!manifest[id] && !id.startsWith("nibble-")) { console.log(`    ${id.padEnd(20)} NOT IN THE ARCHIVE`); wrong++; continue }
   // Keys are written as <b>W</b> or <b>W A S D</b>; other bold is not a key.
   const named = new Set()
   for (const m of note.matchAll(/<b>([^<]+)<\/b>/g)) for (const t of m[1].trim().split(/\s+/)) if (PAD.includes(t.toUpperCase())) named.add(PAD.indexOf(t.toUpperCase()))
@@ -31,7 +31,7 @@ for (const [id, note] of Object.entries(NOTES)) {
   checked++
   const rom = await fetchRom(id)
   const read = keysWatched(rom)
-  const known = new Set([...read.asked, ...played(rom, manifest[id].options)])
+  const known = new Set([...read.asked, ...played(rom, manifest[id]?.options)])
   const bad = [...named].filter((k) => !known.has(k))
   // A program that works its key numbers out at run time may ask about keys
   // neither method reached, so those only get a question mark.
