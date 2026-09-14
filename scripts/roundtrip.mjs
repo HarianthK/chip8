@@ -5,8 +5,8 @@
 import vm from "node:vm"
 import { Chip8 } from "../chip8.js"
 import { analyse, disassemble } from "../disassemble.js"
+import { manifest as archive, rom as fetchRom } from "./archive.mjs"
 
-const ARCHIVE = "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/master"
 const OCTO = "https://raw.githubusercontent.com/JohnEarnest/Octo/gh-pages/js/compiler.js"
 
 const box = { console }
@@ -48,12 +48,12 @@ function executed(rom, options = {}) {
   return { seen, drawn }
 }
 
-const manifest = await (await fetch(`${ARCHIVE}/programs.json`)).json()
+const manifest = await archive()
 const wanted = process.argv[2]
 let same = 0, differ = 0, clean = 0, ran = 0, blind = 0, drewCode = 0
 for (const [id, meta] of Object.entries(manifest).sort()) {
   if (wanted && wanted !== id) continue
-  const rom = new Uint8Array(await (await fetch(`${ARCHIVE}/roms/${id}.ch8`)).arrayBuffer())
+  const rom = await fetchRom(id)
   const listing = disassemble(rom)
   const back = assemble(listing)
   const identical = back.bytes && back.bytes.length === rom.length && back.bytes.every((b, i) => b === rom[i])

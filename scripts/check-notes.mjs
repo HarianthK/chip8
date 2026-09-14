@@ -5,8 +5,8 @@
 import { Chip8 } from "../chip8.js"
 import { keysWatched } from "../disassemble.js"
 import { NOTES } from "../notes.js"
+import { manifest as archive, rom as fetchRom } from "./archive.mjs"
 
-const ARCHIVE = "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/master"
 const PAD = ["X", "1", "2", "3", "Q", "W", "E", "A", "S", "D", "Z", "C", "4", "R", "F", "V"]
 
 function played(rom, options = {}) {
@@ -20,7 +20,7 @@ function played(rom, options = {}) {
   return new Set([...cpu.used.keys()].filter((k) => cpu.used[k]))
 }
 
-const manifest = await (await fetch(`${ARCHIVE}/programs.json`)).json()
+const manifest = await archive()
 let wrong = 0, unsure = 0, checked = 0
 for (const [id, note] of Object.entries(NOTES)) {
   if (!manifest[id]) { console.log(`    ${id.padEnd(20)} NOT IN THE ARCHIVE`); wrong++; continue }
@@ -29,7 +29,7 @@ for (const [id, note] of Object.entries(NOTES)) {
   for (const m of note.matchAll(/<b>([^<]+)<\/b>/g)) for (const t of m[1].trim().split(/\s+/)) if (PAD.includes(t.toUpperCase())) named.add(PAD.indexOf(t.toUpperCase()))
   if (!named.size) continue
   checked++
-  const rom = new Uint8Array(await (await fetch(`${ARCHIVE}/roms/${id}.ch8`)).arrayBuffer())
+  const rom = await fetchRom(id)
   const read = keysWatched(rom)
   const known = new Set([...read.asked, ...played(rom, manifest[id].options)])
   const bad = [...named].filter((k) => !known.has(k))

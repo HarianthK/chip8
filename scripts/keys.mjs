@@ -3,8 +3,8 @@
 // Run: node scripts/keys.mjs [name]
 import { Chip8 } from "../chip8.js"
 import { keysWatched } from "../disassemble.js"
+import { manifest as archive, rom as fetchRom } from "./archive.mjs"
 
-const ARCHIVE = "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/master"
 const PAD = ["X", "1", "2", "3", "Q", "W", "E", "A", "S", "D", "Z", "C", "4", "R", "F", "V"]
 
 // The same probe the page uses: hold each key in turn and see which ones the
@@ -25,12 +25,12 @@ function keysPlayed(rom, options = {}) {
 
 const show = (set) => [...set].sort((a, b) => a - b).map((k) => PAD[k]).join(" ") || "(none)"
 
-const manifest = await (await fetch(`${ARCHIVE}/programs.json`)).json()
+const manifest = await archive()
 const wanted = process.argv[2]
 let agree = 0, sure = 0, vague = 0, extra = 0
 for (const [id, meta] of Object.entries(manifest).sort()) {
   if (wanted && wanted !== id) continue
-  const rom = new Uint8Array(await (await fetch(`${ARCHIVE}/roms/${id}.ch8`)).arrayBuffer())
+  const rom = await fetchRom(id)
   const read = keysWatched(rom)
   const played = keysPlayed(rom, meta.options)
   // Reading sees every key the program could ask about; playing only sees the
