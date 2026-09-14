@@ -97,8 +97,9 @@ op, which it did for the first `5XY0` attempt here. Both the correct and the
 broken path had ended on the same instruction, so the proof distinguished
 nothing.
 
-Nine breakages are built in and each one is run against all eight tests in the
-suite, because a gap in one test may be covered by another.
+Seventeen breakages are built in and each one is run against all eight tests
+in the suite and the XO-CHIP test kept here, because a gap in one test may be
+covered by another.
 
 | Breakage | Noticed by |
 | --- | --- |
@@ -110,7 +111,14 @@ suite, because a gap in one test may be covered by another.
 | drawing never reports a collision | the quirks test only |
 | `8XY7` takes its flag after the subtraction | **nothing in the suite** |
 | the shift takes its flag from `VX` | **nothing in the suite** |
-| a skip steps two bytes over the four byte `i := long` | **nothing in the suite** |
+| a skip steps two bytes over the four byte `i := long` | **nothing in the suite**, only the XO-CHIP test here |
+| `F000` keeps twelve bits of its address | only the XO-CHIP test here |
+| `FN01` does nothing, so there is one plane | only the XO-CHIP test here |
+| scrolling moves every plane, not the selected one | only the XO-CHIP test here |
+| `00DN` does nothing | only the XO-CHIP test here |
+| `5XY2` and `5XY3` move `i` | only the XO-CHIP test here |
+| `FX85` does nothing | only the XO-CHIP test here |
+| a 16 by 16 sprite is drawn eight wide | only the XO-CHIP test here |
 
 The last two are worth dwelling on. Both are wrong only in a case the suite
 never exercises. `8XY7` is wrong when `X` and `Y` are the same register, and the
