@@ -436,6 +436,9 @@ fetch(`${ARCHIVE}/programs.json`)
       option.textContent = `${id}${meta.authors?.length ? ` by ${meta.authors[0]}` : ""}`
       games.append(option)
     }
+    // A link can name a program, so one can be shared as an address.
+    const wanted = new URLSearchParams(location.search).get("p")
+    if (wanted && data[wanted]) { games.value = wanted; games.dispatchEvent(new Event("change")) }
   })
   .catch(() => {
     games.innerHTML = '<option value="">Could not reach the archive</option>'
@@ -445,6 +448,7 @@ games.addEventListener("change", async () => {
   const id = games.value
   if (!id) return
   const meta = manifest[id] ?? {}
+  history.replaceState(null, "", `?p=${encodeURIComponent(id)}`)
 
   const perFrame = Number(meta.options?.tickrate)
   if (Number.isFinite(perFrame) && perFrame > 0) {
