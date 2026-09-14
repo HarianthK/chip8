@@ -267,7 +267,13 @@ reached, and those are the ones the page now gets right: Chicken Scratch used
 to light up `E` alone and now lights `Q W E A S D`.
 
 What neither method gives is what a key *does*. That still means sitting down
-with the game, which is why the notes file grows slowly.
+with the game, which is why the notes file grows slowly. But the two methods
+can guard the notes: `check-notes.mjs` takes every key a note names in bold
+and requires that reading or playing saw the program ask about it. Fifty
+notes name keys and none names a wrong one. Planting a wrong key in a
+program whose keys are fully known fails the check; planting one in a program
+that works keys out at run time gets a question mark, since neither method
+can be sure there, and four notes sit in that state on purpose.
 
 ## A test of my own
 

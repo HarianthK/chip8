@@ -43,7 +43,8 @@ const startKey = startArg >= 0 ? PAD.indexOf(args[startArg + 1].toUpperCase()) :
 const begin = () => {
   const cpu = fresh()
   go(cpu, settle)
-  if (startKey >= 0) { cpu.keyDown(startKey); go(cpu, 8); cpu.keyUp(startKey); go(cpu, settle) }
+  // Some programs want the start key held rather than tapped, so --start-hold N.
+  if (startKey >= 0) { cpu.keyDown(startKey); go(cpu, flag("--start-hold", 8)); cpu.keyUp(startKey); go(cpu, settle) }
   return cpu
 }
 
