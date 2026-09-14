@@ -342,6 +342,44 @@ it. The suite's quirks test had been running the whole time, but only ever to
 compare one build against another for regressions. Nobody read what it said. It
 now passes all six with the original machine's settings.
 
+## Checking other people's emulators
+
+Once the emulator passed the suite, the suite plus the emulator became a
+tool for reading other emulators. The method is always the same. Clone the
+project, find the core (the part that owns registers, memory and the screen
+and has no window in it), and write a `main` around it that loads a ROM,
+sets keys from a `K:down:up` schedule, runs thirty instructions a frame for
+nine hundred frames and prints the screen as `#` and `.`. Then print the
+same thing from `scripts/reference.mjs` and diff. The opcode test and the
+flags test should come out identical; the quirks test's six words say which
+flavour the other emulator is; the keypad test's third check says whether
+`FX0A` waits for the key to be released.
+
+Fifteen emulators went through this on 2026-09-14. The same handful of
+mistakes came up again and again, in this order of frequency:
+
+- `FX0A` completing when a key goes down rather than when it comes back up.
+  Nearly all of them. The original interpreter waits for the release.
+- `VF` written before the result in `8XY4` to `8XYE`, so that when `VX` is
+  `VF` the result overwrites the flag. About half.
+- No clipping in `DXYN`, so a sprite past the right edge continues on the
+  next row and a sprite past the bottom writes outside the display buffer.
+  Three, two of them in C++ where that is memory corruption.
+- `8XY5` and `8XY7` using a strict comparison, so equal values report a
+  borrow. Three.
+- Key indices not masked to a nibble, so `EX9E` with a register above 15
+  reads past the key array, asserts, or throws. Three.
+- One-offs: a collision flag tested after the xor (so inverted), `BNNN`'s
+  address kept in a byte, `FX0A` advancing the PC twice and skipping the
+  next instruction, timers ticking per instruction rather than at 60 Hz, the
+  sound timer stepped twice a frame.
+
+Two things about the method. The harness must mirror the front end's
+contract, not the core alone: rsc8 looked wrong on `FX0A` until the harness
+honoured the release flag its terminal front end honours. And a menu key
+that goes nowhere makes a test look passed; the quirks test needs `2` then
+`1` for SUPER-CHIP, and pressing `4` shows a screen that proves nothing.
+
 ## Decisions worth knowing
 
 **Instruction order in the arithmetic opcodes.** The carry flag is written after

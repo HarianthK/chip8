@@ -133,6 +133,27 @@ red and no other. The mutation tool also runs the suite against those eight
 breakages, and none of them is noticed there. The plane scroll row found this
 emulator scrolling both planes whatever was selected, which is now fixed.
 
+## Checking another emulator
+
+The same suite that checks this emulator can check somebody else's, and the
+quickest way to read its results is to diff screens. `scripts/reference.mjs`
+prints what a correct interpreter shows for any ROM after a set number of
+frames, with keys pressed on a schedule, so another emulator's output can be
+compared line for line:
+
+    node scripts/reference.mjs 3-corax+.ch8 > expected.txt
+    node scripts/reference.mjs 5-quirks.ch8 --as schip --key 2:60:70 --key 1:90:100 --rows
+    node scripts/reference.mjs --score their-quirks-screen.txt
+
+`--as` picks the platform the ROM should be judged as, `--key` is a hex key
+with the frames it goes down and up on (the quirks test's menus need `1` for
+CHIP-8, `2` then `1` for SUPER-CHIP), and `--rows` or `--score` reads the six
+ok/X words off a quirks screen rather than printing it. The other side is a
+small `main` around the other emulator's core that feeds the same key
+schedule and prints its screen the same way; one has been written for C,
+C++, Python, Rust and Java cores in an afternoon each, and DOCS.md says what
+they turned up.
+
 ## What is not here
 
 Games, and only one test program of my own. The other test buttons fetch from
