@@ -61,6 +61,12 @@ export const NOTES = {
     "<b>W</b> and <b>S</b> move the left paddle, <b>R</b> and <b>F</b> the right. First to nine, then <b>E</b> plays again.",
   "nibble-snake":
     "<b>W A S D</b> steer. Eat the food, do not eat yourself. <b>E</b> plays again.",
+  mastermind:
+    "<b>S</b> starts it. <b>W A S D</b> move around the guess, <b>V</b> submits it and shows the clues, <b>R</b> fills the first column with random symbols and <b>4</b> brings up the rules.",
+  carbon8:
+    "Any key clicks through the three opening screens. Then <b>Q</b> and <b>A</b> turn the left dial, <b>D</b> and <b>S</b> raise and lower the bar, <b>R</b> and <b>F</b> turn the right dial. Keep the reactor from cooking.",
+  octorancher:
+    "<b>E</b> starts it. <b>W</b> and <b>S</b> change the top and bottom halves of your monster, <b>1</b> confirms it. Raise a monster and send it to fight.",
   mrworm:
     "Any key starts it. <b>A</b> and <b>D</b> are the only keys it watches. Snake, with more directions than the usual four.",
   "mini-lights-out":
