@@ -1,6 +1,7 @@
 import { Chip8, WIDTH } from "./chip8.js"
 import { NOTES } from "./notes.js"
 import { disassemble, keysWatched } from "./disassemble.js"
+import { History } from "./rewind.js"
 
 // The original keypad was 4x4 hex. This is the layout every emulator settled on.
 const KEYMAP = {
@@ -11,6 +12,9 @@ const KEYMAP = {
 }
 
 const cpu = new Chip8()
+let history = new History(cpu)
+// Held down by Backspace or the rewind button.
+let rewinding = false
 const canvas = document.getElementById("screen")
 const ctx = canvas.getContext("2d")
 const statusEl = document.getElementById("status")
@@ -210,6 +214,17 @@ function frame(now) {
   const elapsed = Math.min(now - last, 100)
   last = now
 
+  if (rewinding) {
+    statusEl.textContent = history.back() ? "rewinding" : "rewound as far as it goes"
+    owed = 0
+    ticksOwed = 0
+    tone(false)
+    paint()
+    cpu.drawn = false
+    requestAnimationFrame(frame)
+    return
+  }
+
   // Instructions are paced by real time rather than per frame, so the speed
   // control means the same thing on any display.
   owed += (elapsed / 1000) * speed
@@ -236,6 +251,7 @@ function frame(now) {
   for (let t = 0; t < 4 && ticksOwed >= 1; t++) { cpu.tickTimers(); ticksOwed-- }
   if (ticksOwed > 4) ticksOwed = 0
   tone(cpu.sound > 0)
+  history.record()
 
   if (cpu.drawn) {
     paint()
@@ -276,6 +292,7 @@ function begin(bytes, name) {
   listing.open = false
   startScan(bytes, Math.max(1, Math.round(speed / 60)))
   cpu.load(bytes)
+  history = new History(cpu)
   paint()
   document.getElementById("loaded").textContent = name
   start()
@@ -335,15 +352,21 @@ speedEl.addEventListener("input", () => {
 })
 
 addEventListener("keydown", (e) => {
+  if (e.code === "Backspace") { e.preventDefault(); rewinding = true; return }
   const key = KEYMAP[e.code]
   if (key === undefined) return
   e.preventDefault()
   press(key)
 })
 addEventListener("keyup", (e) => {
+  if (e.code === "Backspace") rewinding = false
   const key = KEYMAP[e.code]
   if (key !== undefined) release(key)
 })
+
+const rewindEl = document.getElementById("rewind")
+rewindEl.addEventListener("pointerdown", (e) => { rewindEl.setPointerCapture?.(e.pointerId); rewinding = true })
+for (const ev of ["pointerup", "pointercancel"]) rewindEl.addEventListener(ev, () => { rewinding = false })
 
 // The same sixteen keys by touch. Pointer events cover mouse and finger alike,
 // and capture keeps the release on the cell even if the finger slides off it.

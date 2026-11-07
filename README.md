@@ -73,6 +73,20 @@ apparently blank screen.
 The slider overrides it. Winding a slow game up to the maximum is worth doing
 once.
 
+## Rewinding
+
+Hold Backspace, or the rewind button on a phone, and the game runs backwards
+until you let go, then carries on from there. It keeps the last 600 frames,
+which is ten seconds on an ordinary screen. Good for the jump you just missed.
+
+```bash
+node scripts/rewind.mjs
+```
+
+plays every program in the archive with keys going up and down, rewinds it,
+and checks every frame on the way back against a whole copy of the machine
+taken on the way forward. All 105 come back exactly.
+
 ## Reading a program
 
 ```bash

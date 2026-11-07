@@ -380,6 +380,34 @@ honoured the release flag its terminal front end honours. And a menu key
 that goes nowhere makes a test look passed; the quirks test needs `2` then
 `1` for SUPER-CHIP, and pressing `4` shows a screen that proves nothing.
 
+## Rewinding
+
+The machine is small, apart from its memory. Registers, stack, timers, the
+screen and the XO-CHIP sound settings come to about 8 KB, nearly all of it the
+screen, so `save()` copies them whole every frame. Memory is 64 KB since
+XO-CHIP, and 600 whole copies would be close to 40 MB, so `rewind.js` keeps a
+copy of memory as it was at the last frame and stores only the bytes that
+differ, with their old values. Going back one frame writes those old values
+in, which is an undo log. Most frames change a handful of bytes or none.
+
+Keys are left out on purpose: the player is still holding whatever they are
+holding, and putting back the keys from ten seconds ago would leave the game
+thinking a key is down that is not. Random numbers are not saved either, so a
+game played on from a rewound moment can go differently. That is the point of
+going back.
+
+Frames are animation frames, so a 120Hz screen keeps five seconds rather than
+ten.
+
+`scripts/rewind.mjs` does not trust `save()` to know what the machine holds.
+It lists every field the machine object has, except keys, the keypad lighting,
+the settings and the repaint flag, and copies all of them, memory included,
+every frame. A field added later and left out of `save()` fails it. It
+rewinds 150 frames, plays on 120, then rewinds as far as the history goes, so
+frames recorded twice are covered, and it checks that stepping past the oldest
+frame is refused and moves nothing. Ten deliberate breakages, from leaving out
+a field such as the sound pitch to keeping one frame too few, were each caught.
+
 ## Decisions worth knowing
 
 **Instruction order in the arithmetic opcodes.** The carry flag is written after

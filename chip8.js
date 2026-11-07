@@ -38,6 +38,11 @@ const BIG_FONT = [
 ]
 const BIG_FONT_AT = 0x50
 
+const SAVED = [
+  "v", "i", "pc", "stack", "sp", "delay", "sound", "display", "halted", "waitingFor",
+  "pressedWhileWaiting", "unsupported", "hires", "flags", "plane", "pattern", "pitch", "drewThisFrame",
+]
+
 export class Chip8 {
   constructor() {
     this.reset()
@@ -103,6 +108,19 @@ export class Chip8 {
   load(bytes) {
     this.reset()
     this.memory.set(bytes.subarray(0, 65536 - PROGRAM_START), PROGRAM_START)
+  }
+
+  // What rewinding puts back. Memory is left to rewind.js, which keeps only
+  // the bytes that changed; keys stay as the player is holding them.
+  save() {
+    const s = {}
+    for (const f of SAVED) s[f] = ArrayBuffer.isView(this[f]) ? this[f].slice() : this[f]
+    return s
+  }
+
+  restore(s) {
+    for (const f of SAVED) ArrayBuffer.isView(this[f]) ? this[f].set(s[f]) : (this[f] = s[f])
+    this.drawn = true
   }
 
   // The timers tick at 60Hz regardless of how fast instructions run.
