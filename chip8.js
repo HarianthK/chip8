@@ -71,8 +71,8 @@ export class Chip8 {
     this.unsupported = 0
     // Low resolution until a program asks for the bigger screen.
     this.hires = false
-    // FX75/FX85 save and restore these across a program, but not a reset.
-    this.flags = this.flags ?? new Uint8Array(8)
+    // FX75/FX85 save and restore these across a reset. Sixteen, as in Octo; the HP48 had eight.
+    this.flags = this.flags ?? new Uint8Array(16)
     // Programs disagree about a handful of instructions. See the README.
     // These are the settings used when a program says nothing.
     this.quirks = this.quirks ?? {
@@ -304,10 +304,10 @@ export class Chip8 {
         break
       case 0x30: this.i = BIG_FONT_AT + (this.v[x] % 10) * 10; break
       case 0x75:
-        for (let r = 0; r <= (x & 7); r++) this.flags[r] = this.v[r]
+        for (let r = 0; r <= x; r++) this.flags[r] = this.v[r]
         break
       case 0x85:
-        for (let r = 0; r <= (x & 7); r++) this.v[r] = this.flags[r]
+        for (let r = 0; r <= x; r++) this.v[r] = this.flags[r]
         break
       default: this.stop(0xf000 | nn)
     }

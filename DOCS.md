@@ -448,3 +448,15 @@ speed setting means the same thing on a 60Hz screen and a 120Hz one.
 **Sound is one square wave**, gated by the sound timer, and built only when the
 reader first loads a program, because browsers refuse to make noise before then.
 
+
+**Sixteen flag registers, not eight.** `FX75` and `FX85` save and load `V0` to
+`VX`. The HP48 had room for eight, so this emulator masked X to three bits,
+which is wrong twice over for the programs here: they are written for Octo,
+which keeps sixteen, and a mask does not stop at eight, it wraps, so `F875`
+saved `V0` alone and `F975` saved two. A review found it by reading the
+instruction against Octo's source; the suite's row for it uses `V0` only and
+could not see it. `scripts/check-flags.mjs` round-trips every X from 0 to F.
+
+Still different from Octo: `FX30`. Octo's own big font has sixteen characters
+and it masks to four bits; this one has SUPER-CHIP's ten digits and takes the
+value modulo ten, so a program asking for a big A to F gets a digit.
