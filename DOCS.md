@@ -457,6 +457,11 @@ saved `V0` alone and `F975` saved two. A review found it by reading the
 instruction against Octo's source; the suite's row for it uses `V0` only and
 could not see it. `scripts/check-flags.mjs` round-trips every X from 0 to F.
 
-Still different from Octo: `FX30`. Octo's own big font has sixteen characters
-and it masks to four bits; this one has SUPER-CHIP's ten digits and takes the
-value modulo ten, so a program asking for a big A to F gets a digit.
+`FX30` was different from Octo too. Octo's own big font has sixteen characters
+and it masks to four bits; this one had SUPER-CHIP's ten digits and took the
+value modulo ten, so a program asking for a big A got a big 0. It now masks to
+four bits, and the font carries on after SUPER-CHIP's digits with Octo's A to F
+(MIT licensed, 60 bytes), since SUPER-CHIP itself never had them; the font
+still ends well short of 0x200. `scripts/check-bigfont.mjs` runs `FX30` for
+every value of VX and checks that I lands on one of sixteen distinct, visible
+glyphs; it fails on the old code from VX = 10.
